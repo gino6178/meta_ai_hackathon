@@ -1,0 +1,13 @@
+node_modules/
+dist/
+
+# Not published: data-preparation scripts, derived match data, broadcast footage and the 3D anatomy model.
+scripts/
+public/data/*
+!public/data/club.json
+!public/data/venues.json
+public/body/
+public/media/*
+!public/media/favicon.svg
+public/models/
+*.local

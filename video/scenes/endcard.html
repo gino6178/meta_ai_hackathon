@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>End card</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1920px; height: 1080px; background: #fff; color: #0a0a0b; font-family: system-ui, "Segoe UI", sans-serif; overflow: hidden; display: grid; place-items: center; }
+  .wash { position: fixed; inset: 0; background: radial-gradient(ellipse at 50% 55%, rgba(10, 127, 68, .10), transparent 60%); }
+  .wrap { position: relative; text-align: center; }
+  .brand { display: inline-flex; align-items: center; gap: 22px; font: 800 120px/1 system-ui, sans-serif; letter-spacing: -.045em; opacity: 0; animation: up 1s .3s forwards; }
+  .brand svg { width: 130px; height: 130px; fill: none; stroke: #0a0a0b; stroke-width: 5.5; stroke-linecap: round; }
+  .brand circle { fill: #0a7f44; stroke: none; }
+  p { font-size: 38px; color: #3b3b40; margin-top: 34px; opacity: 0; animation: up 1s 1.0s forwards; }
+  .pills { display: flex; gap: 18px; justify-content: center; margin-top: 52px; }
+  .pills span { display: inline-flex; align-items: center; gap: 12px; opacity: 0; animation: up .7s forwards; border: 1px solid rgba(0, 0, 0, .14); border-radius: 999px; padding: 14px 28px; font: 650 27px/1 system-ui, sans-serif; background: #fff; }
+  .pills span img { width: 30px; height: 30px; }
+  .pills span:nth-child(1) { animation-delay: 1.6s; } .pills span:nth-child(2) { animation-delay: 2.1s; } .pills span:nth-child(3) { animation-delay: 2.6s; }
+  .built { position: fixed; left: 0; right: 0; bottom: 66px; display: flex; justify-content: center; align-items: center; gap: 14px; font-size: 26px; color: #65656c; opacity: 0; animation: up 1s 3.0s forwards; }
+  .built img { height: 34px; }
+  .built b { color: #0a0a0b; }
+  @keyframes up { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+</style></head>
+<body>
+<div class="wash"></div>
+<div class="wrap">
+  <div class="brand"><svg viewBox="0 0 64 64"><path d="M10 48 C 22 8, 42 8, 54 30" /><circle cx="54" cy="30" r="5" /></svg>shuttlecoach</div>
+  <p>A 24-hour coaching staff in your pocket.</p>
+  <div class="pills"><span>Your agent books the game</span><span><img src="messenger.svg" alt="">Your coach in Messenger</span><span><img src="instagram.svg" alt=""><img src="facebook.svg" alt="">Highlights to Instagram and Facebook</span></div>
+</div>
+<div class="built"><img src="meta.svg" alt="Meta"><span>Built with <b>Muse Glimmer</b>, Meta's open model, on hardware you own · Meta Global AI Developer Hackathon 2026</span></div>
+</body></html>

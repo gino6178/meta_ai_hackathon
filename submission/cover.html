@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>ShuttleCoach cover</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; background: #ffffff; color: #0a0a0b; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
+  .wash { position: absolute; inset: 0; background: radial-gradient(ellipse at 82% 46%, rgba(10, 127, 68, .10), transparent 58%), radial-gradient(ellipse at 0% 100%, rgba(31, 111, 214, .06), transparent 45%); }
+  .copy { position: absolute; left: 110px; top: 150px; width: 660px; }
+  .brand { display: flex; align-items: center; gap: 14px; font: 800 38px/1 system-ui, sans-serif; letter-spacing: -.035em; }
+  .brand svg { width: 50px; height: 50px; fill: none; stroke: #0a0a0b; stroke-width: 5.5; stroke-linecap: round; }
+  .brand svg circle { fill: #0a7f44; stroke: none; }
+  h1 { font: 800 92px/1.0 system-ui, sans-serif; letter-spacing: -.04em; margin: 64px 0 28px; }
+  p { font-size: 30px; line-height: 1.42; color: #3b3b40; margin: 0 0 48px; }
+  .chips { display: grid; gap: 18px; }
+  .chip { display: flex; align-items: center; gap: 16px; font-size: 25px; font-weight: 650; color: #0a0a0b; }
+  .chip i { width: 14px; height: 14px; border-radius: 50%; flex: none; background: #0a7f44; box-shadow: 0 0 0 5px rgba(10, 127, 68, .18); }
+  .foot { position: absolute; left: 110px; bottom: 64px; font-size: 22px; color: #65656c; }
+  .laptop { position: absolute; left: 820px; top: 150px; width: 1000px; border-radius: 20px; overflow: hidden; border: 1px solid rgba(0, 0, 0, .12); box-shadow: 0 30px 90px rgba(0, 0, 0, .16), 0 4px 14px rgba(0, 0, 0, .06); background: #fff; }
+  .laptop img { display: block; width: 100%; }
+  .phone { position: absolute; left: 1592px; top: 452px; width: 252px; border-radius: 36px; overflow: hidden; border: 7px solid #0a0a0b; box-shadow: 0 30px 80px rgba(0, 0, 0, .28); background: #fff; }
+  .phone img { display: block; width: 100%; }
+</style>
+</head>
+<body>
+  <div class="wash"></div>
+  <div class="copy">
+    <div class="brand"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 48 C 22 8, 42 8, 54 30" /><circle cx="54" cy="30" r="5" /></svg>shuttlecoach</div>
+    <h1>Say you want<br />to play.</h1>
+    <p>Your agent opens the map, lines up everyone's calendar, picks the court in the middle and sends the invites.</p>
+    <div class="chips">
+      <div class="chip"><i></i>A team of Muse Glimmer agents, on your GPU</div>
+      <div class="chip"><i></i>Every step shown, every number checked</div>
+      <div class="chip"><i></i>Five coach agents from one phone video</div>
+    </div>
+  </div>
+  <div class="foot">Meta Global AI Developer Hackathon 2026 · Indie Developer track</div>
+  <div class="laptop"><img src="shots/play_challenge_map.png" alt="" /></div>
+  <div class="phone"><img src="shots/phone_play_map.png" alt="" /></div>
+</body>
+</html>

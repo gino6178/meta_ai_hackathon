@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 880" width="1600" height="880" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif">
+  <title>ShuttleCoach architecture</title>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8a8a90" />
+    </marker>
+  </defs>
+  <rect width="1600" height="880" fill="#ffffff" />
+  <text x="56" y="66" fill="#0a0a0b" font-size="34" font-weight="800" letter-spacing="-1">shuttlecoach</text>
+  <text x="56" y="100" fill="#65656c" font-size="18">A team of agents on one open model: your agent books the game, coach agents get you ready for it. All on hardware the player owns.</text>
+
+  <g fill="#65656c" font-size="14" font-weight="700" letter-spacing="1.6">
+    <text x="56" y="152">YOUR AGENT</text>
+    <text x="56" y="532">THE COACH AGENTS</text>
+  </g>
+
+  <!-- the agent: you, the gateway, its steps, the game -->
+  <rect x="56" y="170" width="200" height="132" rx="16" fill="#f5f5f6" />
+  <text x="76" y="204" fill="#0a0a0b" font-size="20" font-weight="700">You</text>
+  <text x="76" y="232" fill="#3b3b40" font-size="15">“Challenge Kenji</text>
+  <text x="76" y="252" fill="#3b3b40" font-size="15">this week”</text>
+  <text x="76" y="280" fill="#65656c" font-size="13">typed, or spoken: speech</text>
+  <text x="76" y="296" fill="#65656c" font-size="13">stays in the browser</text>
+
+  <rect x="290" y="170" width="220" height="132" rx="16" fill="#f5f5f6" />
+  <text x="310" y="204" fill="#0a0a0b" font-size="20" font-weight="700">Your agent</text>
+  <text x="310" y="232" fill="#3b3b40" font-size="15">every job is a task</text>
+  <text x="310" y="254" fill="#3b3b40" font-size="15">each step streams to</text>
+  <text x="310" y="274" fill="#3b3b40" font-size="15">the app as it finishes</text>
+
+  <g font-size="15">
+    <rect x="545" y="170" width="148" height="60" rx="12" fill="#ffffff" stroke="#0a7f44" stroke-width="2" />
+    <text x="559" y="195" fill="#0a0a0b" font-weight="700">1 Read it</text><text x="559" y="216" fill="#0a7f44" font-size="13">Muse Glimmer</text>
+    <rect x="703" y="170" width="148" height="60" rx="12" fill="#ffffff" stroke="#d8d8dc" />
+    <text x="717" y="195" fill="#0a0a0b" font-weight="700">2 Open the map</text><text x="717" y="216" fill="#65656c" font-size="13">home areas only</text>
+    <rect x="861" y="170" width="148" height="60" rx="12" fill="#ffffff" stroke="#d8d8dc" />
+    <text x="875" y="195" fill="#0a0a0b" font-weight="700">3 Check courts</text><text x="875" y="216" fill="#65656c" font-size="13">venue adapter</text>
+    <rect x="1019" y="170" width="148" height="60" rx="12" fill="#ffffff" stroke="#d8d8dc" />
+    <text x="1033" y="195" fill="#0a0a0b" font-weight="700">4 Calendars</text><text x="1033" y="216" fill="#65656c" font-size="13">when all are free</text>
+    <rect x="545" y="242" width="148" height="60" rx="12" fill="#ffffff" stroke="#d8d8dc" />
+    <text x="559" y="267" fill="#0a0a0b" font-weight="700">5 The middle</text><text x="559" y="288" fill="#65656c" font-size="13">longest trip shortest</text>
+    <rect x="703" y="242" width="148" height="60" rx="12" fill="#ffffff" stroke="#0a7f44" stroke-width="2" />
+    <text x="717" y="267" fill="#0a0a0b" font-weight="700">6 Write invites</text><text x="717" y="288" fill="#0a7f44" font-size="13">Muse Glimmer</text>
+    <rect x="861" y="242" width="148" height="60" rx="12" fill="#e7f3ec" stroke="#0a7f44" />
+    <text x="875" y="267" fill="#0a0a0b" font-weight="700">7 Verify</text><text x="875" y="288" fill="#0a7f44" font-size="13">every time, price</text>
+    <rect x="1019" y="242" width="148" height="60" rx="12" fill="#0a0a0b" />
+    <text x="1033" y="267" fill="#ffffff" font-weight="700">8 Your yes</text><text x="1033" y="288" fill="#c8c8cd" font-size="13">then it books</text>
+  </g>
+  <text x="545" y="330" fill="#65656c" font-size="14">Muse Glimmer reads and writes. Code does the exact work.</text>
+  <text x="545" y="350" fill="#65656c" font-size="14">A verifier checks it before anything is booked.</text>
+
+  <rect x="1215" y="170" width="330" height="132" rx="16" fill="#f5f5f6" />
+  <text x="1235" y="204" fill="#0a0a0b" font-size="20" font-weight="700">Game on</text>
+  <text x="1235" y="232" fill="#3b3b40" font-size="15">court held, invites sent, answers followed</text>
+  <text x="1235" y="254" fill="#3b3b40" font-size="15">calendar file · group chat · club feed</text>
+  <text x="1235" y="280" fill="#65656c" font-size="13">a partner you named is never swapped:</text>
+  <text x="1235" y="296" fill="#65656c" font-size="13">the agent offers another time instead</text>
+
+  <g stroke="#8a8a90" stroke-width="2" fill="none" marker-end="url(#arr)">
+    <path d="M256 236 H284" />
+    <path d="M510 236 H539" />
+    <path d="M1167 236 H1209" />
+  </g>
+
+  <!-- memory, shared by the agent and the coaches -->
+  <rect x="860" y="384" width="320" height="76" rx="14" fill="#ffffff" stroke="#d8d8dc" />
+  <text x="880" y="414" fill="#0a0a0b" font-size="17" font-weight="700">Player memory</text>
+  <text x="880" y="440" fill="#65656c" font-size="14">injuries, goals, schedule, read from chat</text>
+  <g stroke="#8a8a90" stroke-width="2" fill="none" marker-end="url(#arr)" stroke-dasharray="5 5">
+    <path d="M1020 384 V308" />
+    <path d="M1020 460 V546" />
+  </g>
+  <text x="1032" y="352" fill="#65656c" font-size="13">a sore knee: doubles first</text>
+
+  <!-- hand-offs: your agent passes questions to the right coach agent and asks all four for quests -->
+  <path d="M400 302 V488 H900 V546" stroke="#0a7f44" stroke-width="2.5" fill="none" stroke-dasharray="7 6" marker-end="url(#arr)" />
+  <text x="414" y="478" fill="#0a7f44" font-size="14" font-weight="700">hands questions to the right coach agent, asks all four for quests</text>
+
+  <!-- the research agent and the coaches' playbooks -->
+  <rect x="1215" y="374" width="330" height="96" rx="14" fill="#e7f3ec" stroke="#0a7f44" stroke-width="2" />
+  <text x="1235" y="402" fill="#0a0a0b" font-size="17" font-weight="700">Self-improving coach agents</text>
+  <text x="1235" y="424" fill="#3b3b40" font-size="13">research agent: 62 findings from 24 papers</text>
+  <text x="1235" y="442" fill="#3b3b40" font-size="13">22 playbook changes: 15 passed safety and</text>
+  <text x="1235" y="460" fill="#3b3b40" font-size="13">regression gates, health ones wait for you</text>
+  <path d="M1290 470 L1176 548" stroke="#8a8a90" stroke-width="2" fill="none" stroke-dasharray="5 5" marker-end="url(#arr)" />
+
+  <!-- the coaches: video, perception, facts, coaches, the plan -->
+  <rect x="56" y="552" width="200" height="132" rx="16" fill="#f5f5f6" />
+  <text x="76" y="586" fill="#0a0a0b" font-size="20" font-weight="700">Phone video</text>
+  <text x="76" y="614" fill="#3b3b40" font-size="15">one fixed camera</text>
+  <text x="76" y="636" fill="#3b3b40" font-size="15">behind a baseline</text>
+  <text x="76" y="664" fill="#0a7f44" font-size="14" font-weight="700">never uploaded</text>
+
+  <rect x="290" y="552" width="300" height="132" rx="16" fill="#f5f5f6" />
+  <text x="310" y="586" fill="#0a0a0b" font-size="20" font-weight="700">Perception</text>
+  <text x="310" y="614" fill="#3b3b40" font-size="15">TrackNetV5: the shuttle in 2D</text>
+  <text x="310" y="636" fill="#3b3b40" font-size="15">3D flight, every hit, the court</text>
+  <text x="310" y="664" fill="#0a7f44" font-size="14" font-weight="700">Sapiens2 + SAM 2.1: the players</text>
+
+  <rect x="625" y="552" width="200" height="132" rx="16" fill="#f5f5f6" />
+  <text x="645" y="586" fill="#0a0a0b" font-size="20" font-weight="700">Match facts</text>
+  <text x="645" y="614" fill="#3b3b40" font-size="15">computed, cited</text>
+  <text x="645" y="636" fill="#3b3b40" font-size="15">like [F8]</text>
+  <text x="645" y="664" fill="#65656c" font-size="13">the only numbers a coach says</text>
+
+  <rect x="860" y="552" width="320" height="132" rx="16" fill="#ffffff" stroke="#0a7f44" stroke-width="2" />
+  <text x="880" y="586" fill="#0a0a0b" font-size="20" font-weight="700">Five coach agents</text>
+  <text x="880" y="614" fill="#0a7f44" font-size="15" font-weight="700">Muse Glimmer</text>
+  <text x="880" y="636" fill="#3b3b40" font-size="15">own facts, visual, memory, Messenger</text>
+  <text x="880" y="664" fill="#65656c" font-size="13">verifier: every number against its fact</text>
+
+  <rect x="1215" y="552" width="330" height="132" rx="16" fill="#f5f5f6" />
+  <text x="1235" y="586" fill="#0a0a0b" font-size="20" font-weight="700">They work together</text>
+  <text x="1235" y="614" fill="#3b3b40" font-size="15">round table: debate, then a fixed rule</text>
+  <text x="1235" y="636" fill="#3b3b40" font-size="15">4 goals, a 7-day plan, quests, club night</text>
+  <text x="1235" y="664" fill="#65656c" font-size="13">health limits come first</text>
+
+  <g stroke="#8a8a90" stroke-width="2" fill="none" marker-end="url(#arr)">
+    <path d="M256 618 H284" />
+    <path d="M590 618 H619" />
+    <path d="M825 618 H854" />
+    <path d="M1180 618 H1209" />
+  </g>
+
+  <!-- where it runs -->
+  <rect x="290" y="724" width="890" height="64" rx="14" fill="#0a0a0b" />
+  <circle cx="320" cy="756" r="7" fill="#4fd18b" />
+  <text x="340" y="762" fill="#ffffff" font-size="17" font-weight="700">Your GPU server · one RTX 3090 · Ollama · Muse Glimmer 30B, open weights (Apache 2.0)</text>
+  <rect x="1215" y="724" width="330" height="64" rx="14" fill="#ffffff" stroke="#1f6fd6" stroke-dasharray="6 5" />
+  <text x="1235" y="750" fill="#1f6fd6" font-size="16" font-weight="700">Meta Model API · optional</text>
+  <text x="1235" y="772" fill="#65656c" font-size="14">Muse Spark, by three settings</text>
+  <text x="56" y="836" fill="#65656c" font-size="14">Demo data: club members, venues, free slots and home areas are made up. The map is drawn in the app, with no map service.</text>
+</svg>

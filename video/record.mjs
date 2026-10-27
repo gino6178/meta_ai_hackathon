@@ -1,0 +1,320 @@
+// Record the demo video's scenes from the running site (npm run dev on :5191, gateway on the GPU server) at
+// 1920x1080 in the light theme. Each scene goes to build/<name>.webm, with the moments that matter in
+// build/marks.json (seconds from the start of that scene); assemble.mjs cuts, speeds up the model's waits,
+// captions and joins them.
+//   node record.mjs [scene ...]     scenes: title play tasks coaches chat round pocket highlight lab club end (default: all)
+import { createRequire } from "node:module";
+import fs from "node:fs";
+import path from "node:path";
+// puppeteer-core from this folder's node_modules, or from another project's (PUPPETEER_FROM=that folder)
+const require = createRequire(process.env.PUPPETEER_FROM ? path.join(process.env.PUPPETEER_FROM, "package.json") : import.meta.url);
+const puppeteer = require("puppeteer-core");
+
+const B = "http://127.0.0.1:5191";
+const HERE = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1"));
+const OUT = path.join(HERE, "build"), SCENES = path.join(HERE, "scenes"), MARKS = path.join(OUT, "marks.json");
+fs.mkdirSync(OUT, { recursive: true });
+const want = process.argv.slice(2);
+const run = (n) => !want.length || want.includes(n);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const marks = fs.existsSync(MARKS) ? JSON.parse(fs.readFileSync(MARKS, "utf8")) : {};
+
+const browser = await puppeteer.launch({
+  executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", protocolTimeout: 900000,
+  args: ["--autoplay-policy=no-user-gesture-required", "--ignore-gpu-blocklist", "--enable-gpu-rasterization", "--window-size=1920,1080", "--allow-file-access-from-files"],
+});
+const page = await browser.newPage();
+await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
+await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
+// a visible cursor with a click ring: headless screencasts show no pointer
+await page.evaluateOnNewDocument(() => {
+  addEventListener("DOMContentLoaded", () => {
+    const c = document.createElement("div");
+    c.id = "__cur";
+    c.style.cssText = "position:fixed;left:-50px;top:-50px;width:24px;height:24px;z-index:2147483647;pointer-events:none";
+    c.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24"><path d="M3 2l7 19 2.6-8.1L21 10z" fill="#fff" stroke="#0a0a0b" stroke-width="1.5" stroke-linejoin="round"/></svg>';
+    document.documentElement.appendChild(c);
+    // one pixel that changes every frame: the screencast only sends frames when something changes, so a page that
+    // sits still would otherwise lose its last state (a booking that just went "Game on") and drift in time
+    const tick = document.createElement("i");
+    tick.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;z-index:2147483647;pointer-events:none;background:#fefefe";
+    document.documentElement.appendChild(tick);
+    let on = false; const flip = () => { on = !on; tick.style.background = on ? "#fdfdfd" : "#fefefe"; requestAnimationFrame(flip); }; requestAnimationFrame(flip);
+    addEventListener("mousemove", (e) => { c.style.left = e.clientX - 3 + "px"; c.style.top = e.clientY - 2 + "px"; }, true);
+    addEventListener("mousedown", (e) => {
+      const r = document.createElement("div");
+      r.style.cssText = `position:fixed;left:${e.clientX - 18}px;top:${e.clientY - 18}px;width:36px;height:36px;border-radius:50%;border:3px solid #0a7f44;z-index:2147483646;pointer-events:none;transition:all .45s ease-out;opacity:1`;
+      document.documentElement.appendChild(r);
+      requestAnimationFrame(() => { r.style.transform = "scale(1.8)"; r.style.opacity = "0"; });
+      setTimeout(() => r.remove(), 600);
+    }, true);
+  });
+});
+
+let mx = 960, my = 540;
+async function move(x, y, ms = 700) {
+  const t0 = Date.now();
+  for (;;) {
+    const t = Math.min(1, (Date.now() - t0) / ms), e = t < .5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+    await page.mouse.move(mx + (x - mx) * e, my + (y - my) * e);
+    if (t >= 1) break;
+    await wait(16);
+  }
+  mx = x; my = y;
+}
+async function at(sel, text, scroll = true) {
+  const h = await page.evaluateHandle((s, t) => [...document.querySelectorAll(s)].find((e) => !t || e.innerText.includes(t)) || null, sel, text ?? null);
+  const el = h.asElement();
+  if (!el) throw new Error(`not found: ${sel} ${text ?? ""}`);
+  if (scroll) { await el.evaluate((e) => { const r = e.getBoundingClientRect(); if (r.top < 40 || r.bottom > innerHeight - 40) e.scrollIntoView({ behavior: "smooth", block: "center" }); }); await wait(700); }
+  const b = await el.boundingBox();
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2, el };
+}
+async function click(sel, text, ms = 700) { const p = await at(sel, text); await move(p.x, p.y, ms); await wait(150); await page.mouse.click(p.x, p.y); return p; }
+async function scrollEl(sel, block = "start", ms = 1200) { await page.evaluate((s, b) => document.querySelector(s)?.scrollIntoView({ behavior: "smooth", block: b }), sel, block); await wait(ms); }
+async function go(hash, settle = 1500) { await page.goto(`${B}/#/${hash}`, { waitUntil: "networkidle2" }); await page.mouse.move(mx, my); await wait(settle); }
+async function rec(name, fn) {
+  const file = path.join(OUT, name + ".webm");
+  const r = await page.screencast({ path: file });
+  const t0 = Date.now(), m = {};
+  const mark = (k) => { m[k] = +((Date.now() - t0) / 1000).toFixed(2); console.log(`  ${name}.${k} ${m[k]} s`); };
+  await fn(mark);
+  m.end = +((Date.now() - t0) / 1000).toFixed(2);
+  await r.stop();
+  marks[name] = m;
+  fs.writeFileSync(MARKS, JSON.stringify(marks, null, 1));
+  console.log(name, m.end, "s");
+}
+// camera move: scale the app around a point on screen (a CSS transform on #root keeps text sharp)
+async function zoom(x, y, s, ms = 2200) {
+  await page.evaluate((x, y, s, ms) => {
+    const r = document.getElementById("root");
+    r.style.transition = `transform ${ms}ms cubic-bezier(.45,0,.2,1)`; r.style.transformOrigin = `${x}px ${y + scrollY}px`; r.style.transform = s === 1 ? "none" : `scale(${s})`;
+  }, x, y, s, ms);
+}
+// a card that names what is on screen, in the app's own style: white, a hairline, the agent's green dot
+async function callout(id, html, x = 80, y = 900) {
+  await page.evaluate((id, html, x, y) => {
+    let el = document.getElementById(id);
+    if (!el) { el = document.createElement("div"); el.id = id; el.className = "fx"; document.documentElement.appendChild(el); }
+    el.style.cssText = `position:fixed;z-index:2147483640;left:${x}px;top:${y}px;opacity:0;transform:translateY(14px);transition:opacity .45s,transform .45s;background:#fff;border:1px solid rgba(0,0,0,.14);color:#0a0a0b;font:700 30px/1.3 system-ui,'Segoe UI',sans-serif;padding:16px 28px 16px 56px;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.16);max-width:1100px;pointer-events:none`;
+    el.innerHTML = `<i style="position:absolute;left:24px;top:50%;width:14px;height:14px;margin-top:-7px;border-radius:50%;background:#0a7f44;box-shadow:0 0 0 5px rgba(10,127,68,.2)"></i>${html}`;
+    requestAnimationFrame(() => requestAnimationFrame(() => { el.style.opacity = "1"; el.style.transform = "none"; }));
+  }, id, html, x, y);
+}
+const uncall = (id) => page.evaluate((id) => { const el = document.getElementById(id); if (el) { el.style.opacity = "0"; setTimeout(() => el.remove(), 500); } }, id);
+const resetFx = () => page.evaluate(() => { document.querySelectorAll(".fx").forEach((e) => e.remove()); const r = document.getElementById("root"); if (r) { r.style.transition = "none"; r.style.transform = "none"; } });
+const center = (sel, text, fx = .5, fy = .5) => page.evaluate((sel, text, fx, fy) => {
+  const e = [...document.querySelectorAll(sel)].find((x) => !text || x.innerText.includes(text)); if (!e) return null;
+  const r = e.getBoundingClientRect(); return { x: r.left + r.width * fx, y: r.top + r.height * fy };
+}, sel, text ?? null, fx, fy);
+const G = "<span style='color:#0a7f44'>", E = "</span>";
+
+// a clean start: no earlier jobs, game state, stories seen or threads read
+await go("", 800);
+if (!want.length || want.includes("play")) await page.evaluate(() => ["shuttlecoach.tasks.v1", "shuttlecoach.game.v1", "shuttlecoach.stories.v1", "shuttlecoach.inbox.v1"].forEach((k) => localStorage.removeItem(k)));
+
+if (run("title")) { await page.goto("file:///" + path.join(SCENES, "title.html").replace(/\\/g, "/")); await page.mouse.move(-10, -10); await rec("title", () => wait(9000)); }
+
+// the challenge: asked on the agent home, then the Play view fills in step by step, then the booking
+if (run("play")) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    // a real reload, so no job from an earlier take is left in the page
+    await go("", 800);
+    await page.evaluate(() => ["shuttlecoach.tasks.v1", "shuttlecoach.game.v1"].forEach((k) => localStorage.removeItem(k)));
+    await page.reload({ waitUntil: "networkidle2" }); await wait(1800);
+    let ok = true;
+    await rec("play", async (mark) => {
+      await move(1100, 700, 900);
+      await click("#agent-q", null, 900);
+      await page.keyboard.type("Challenge Kenji to a singles match this week", { delay: 55 });
+      mark("typed"); await wait(500);
+      await page.keyboard.press("Enter");
+      await page.waitForFunction(() => location.hash.includes("play?task="), { timeout: 15000 });
+      mark("play"); await wait(900);
+      await scrollEl(".play-job", "start", 1200);
+      await move(1500, 520, 1200);
+      await page.waitForFunction(() => document.querySelector(".trail-step.read_request"), { timeout: 120000 }); mark("read");
+      await page.waitForFunction(() => document.querySelector(".trail-step.open_map"), { timeout: 60000 }); mark("map");
+      await page.waitForFunction(() => document.querySelector(".trail-step.calendar"), { timeout: 60000 }); mark("calendar");
+      await page.waitForFunction(() => document.querySelector(".trail-step.travel"), { timeout: 60000 }); mark("middle");
+      await wait(1600);
+      await page.waitForFunction(() => document.querySelector(".options"), { timeout: 240000 }); mark("options");
+      await wait(1200);
+      await scrollEl(".job-cal", "center", 1400); mark("week"); await wait(2600);
+      await scrollEl(".options", "start", 1400); mark("opts"); await wait(1200);
+      await click(".option.best .btn.primary", null, 900); mark("confirm"); await wait(2600);
+      await click(".play-confirm .btn.primary", null, 900); mark("booked");
+      await page.waitForFunction(() => document.querySelector(".booking.confirmed, .booking.short"), { timeout: 60000 });
+      ok = await page.evaluate(() => !!document.querySelector(".booking.confirmed"));
+      mark("answer");
+      await scrollEl(".booking", "center", 1200); await wait(3600);
+    });
+    console.log("play attempt", attempt, ok ? "confirmed" : "declined, again");
+    const r = await page.evaluate(() => { const t = JSON.parse(localStorage.getItem("shuttlecoach.tasks.v1") || "[]").find((x) => x.kind === "play"); return t && { message: t.result?.message, best: t.result?.options?.[0] && { day: t.result.options[0].day, start: t.result.options[0].start, venue: t.result.options[0].venue.name, travel: t.result.options[0].travel }, seconds: t.result?.seconds, steps: t.steps.map((s) => `${s.step}: ${s.detail}`) }; });
+    fs.writeFileSync(path.join(OUT, "play_result.json"), JSON.stringify(r, null, 1));
+    if (ok) break;
+  }
+}
+
+// the agent home: two jobs at once, their steps arriving; then the quests are left to finish for the club scene
+if (run("tasks")) {
+  await go("", 1500);
+  await rec("tasks", async (mark) => {
+    await click(".ideas .chip", "Get this week's quests", 900); await wait(500);
+    await click(".ideas .chip", "How should I warm up before Thursday?", 800); mark("asked");
+    await wait(1200);
+    const p = await center(".task-sec", "Working on it", .45, .3);
+    if (p) await zoom(p.x, p.y, 1.18, 2000);
+    await wait(9000); mark("steps");
+  });
+  await resetFx();
+  await page.waitForFunction(() => !document.querySelector(".task.running"), { timeout: 300000 }).catch(() => console.log("tasks still running"));
+  await wait(800);
+  await rec("tasks_done", async (mark) => { await scrollEl(".task-sec", "start", 1000); const p = await center(".task", "Coach Ren", .4, .4); if (p) await zoom(p.x, p.y, 1.15, 1800); await wait(4200); mark("shown"); });
+  await resetFx();
+}
+
+// the coach agents: the inbox, Lin's heat zones, Ren working around a sore knee
+if (run("coaches")) {
+  await go("coaches", 1500);
+  await rec("coaches", async (mark) => {
+    await move(900, 300, 1200);
+    const l = await center(".learning");
+    if (l) { await zoom(l.x, l.y, 1.2, 1600); await wait(1800); await zoom(l.x, l.y, 1, 700); await wait(700); }
+    mark("inbox");
+    await click(".thread", "Coach Lin", 900); mark("lin"); await wait(2200);
+    const h = await page.evaluate(() => { const e = [...document.querySelectorAll("h3")].find((x) => x.innerText.includes("beat you")); if (!e) return null; const r = e.parentElement.getBoundingClientRect(); return { x: r.left + r.width * .6, y: r.top + r.height * .6 }; });
+    if (h) { await zoom(h.x, h.y, 1.3, 2200); await wait(600); }
+    await callout("fx1", `Rear forehand: ${G}7 of 24${E} winners conceded`); await wait(3600);
+    await resetFx();
+    await go("coach/fitness", 2500); mark("ren");
+    const c = await page.evaluate(() => { const r = [...document.querySelectorAll("canvas")].map((e) => e.getBoundingClientRect()).sort((a, b) => b.width * b.height - a.width * a.height)[0]; return r && { x: r.left + r.width / 2, y: r.top + r.height * .42 }; });
+    if (c) { await zoom(c.x, c.y, 1.2, 2000); await wait(500); }
+    await callout("fx2", `Memory: ${G}right knee sore${E} → no jump drills`); await wait(3800);
+  });
+  await resetFx();
+}
+
+// a question answered by a coach agent on Muse Glimmer, every number checked
+if (run("chat")) {
+  await go("coach/technique", 1500);
+  await at("section.coach-chat");
+  await rec("chat", async (mark) => {
+    await click("section.coach-chat input[type=text], section.coach-chat input:not([type])", null, 800);
+    await page.keyboard.type("Why do I keep losing points at the net?", { delay: 40 });
+    await wait(300); await page.keyboard.press("Enter"); mark("asked");
+    await page.waitForFunction(() => [...document.querySelectorAll(".coach-chat .chat-msg.assistant")].some((e) => /verified/.test(e.innerText)), { timeout: 120000 });
+    mark("answer");
+    const meta = await page.evaluate(() => [...document.querySelectorAll(".coach-chat .chat-msg.assistant .chat-meta")].at(-1)?.innerText || "");
+    const sec = (meta.match(/([\d.]+) s/) || [])[1];
+    fs.writeFileSync(path.join(OUT, "chat_meta.txt"), meta);
+    const p = await center(".coach-chat .chat-msg.assistant:last-child");
+    if (p) await zoom(p.x, p.y, 1.15, 1500);
+    await callout("fx1", `Muse Glimmer${sec ? ` · ${Math.round(+sec)} s` : ""} · ${G}✓ every number verified${E}`, 80, 110); await wait(4200);
+  });
+  await resetFx();
+}
+
+// the round table: the clash, then the head coach's ruling
+if (run("round")) {
+  await go("roundtable", 500);
+  await page.waitForFunction(() => document.querySelector(".rt-msg.conflict"), { timeout: 120000 });
+  await wait(700);
+  await rec("round", async (mark) => {
+    let p = await center(".rt-msg.conflict");
+    await zoom(p.x, p.y, 1.3, 2000); await wait(600);
+    await callout("fx1", `Conflict: Ren challenges Lin, ${G}right knee sore${E}`); mark("conflict"); await wait(3800);
+    await uncall("fx1"); await zoom(p.x, p.y, 1, 800); await wait(800);
+    await click("button", "Skip to the plan", 700).catch(() => {}); await wait(1200);
+    p = await center(".rt-msg.resolve", "Ruling") || await center(".rt-msg.resolve");
+    if (p) { await zoom(p.x, p.y, 1.25, 1700); await wait(400); }
+    await callout("fx2", `Head coach: ${G}health first${E}, then the points at stake`); mark("ruling"); await wait(3600);
+  });
+  await resetFx();
+}
+
+// the coaches keep learning: the research behind it, a rule learned from a paper, a health change waiting for you
+if (run("lab")) {
+  await go("lab", 2500);
+  await rec("lab", async (mark) => {
+    const k = await center(".readout, dl", null, .25, .5);
+    if (k) { await zoom(k.x, k.y, 1.25, 1800); await wait(400); }
+    await callout("fx1", `Research agent: ${G}62 findings${E} from 24 papers`); mark("research"); await wait(3400);
+    await resetFx();
+    await scrollEl(".lab-grid, .lab-pb", "start", 1500); mark("playbooks");
+    await move(1100, 520, 1200); await wait(1500);
+    const d = await at(".lab-prop.pending", "touches health");
+    await zoom(d.x, d.y, 1.25, 1800); await move(d.x - 140, d.y - 20, 900);
+    await callout("fx2", `A health change: ${G}waits for you${E}`, 80, 120); mark("pending"); await wait(3600);
+    await uncall("fx2"); await zoom(d.x, d.y, 1, 700); await wait(700);
+    const a = await at(".lab-prop.ok", null);
+    await zoom(a.x, a.y, 1.2, 1500);
+    await callout("fx3", `${G}15 of 22${E} changes passed safety and regression checks`, 80, 120); mark("adopted"); await wait(3600);
+  });
+  await resetFx();
+}
+
+// the club: a quest logged against the boss, then an open game joined from the feed
+if (run("club")) {
+  await go("goals", 1800);
+  await rec("club", async (mark) => {
+    const q = await center(".quests");
+    if (q) { await zoom(q.x, q.y * .8, 1.1, 1600); await wait(400); }
+    await click(".quest .btn", null, 900); mark("logged"); await wait(1200);
+    await click(".quest .btn", null, 700); await wait(1000);
+    await resetFx();
+    const b = await center(".boss");
+    if (b) { await zoom(b.x, b.y, 1.2, 1500); await wait(400); }
+    await callout("fx1", `Every logged quest takes ${G}health off the boss${E}`); await wait(3000);
+    await resetFx();
+    await go("club", 1500); mark("feed");
+    await move(900, 500, 900); await wait(800);
+    await click(".open-card .btn", null, 900); mark("joined"); await wait(1000);
+    const j = await center(".open-card");
+    if (j) await zoom(j.x, j.y, 1.25, 1500);
+    await callout("fx2", `Joined Leo's game: ${G}one tap${E}`); await wait(3000);
+  });
+  await resetFx();
+}
+
+// the 24-hour coach in Messenger: the end-to-end test's real conversation, on a phone
+if (run("pocket")) { await page.goto("file:///" + path.join(SCENES, "pocket.html").replace(/\\/g, "/")); await page.mouse.move(-10, -10); await rec("pocket", () => wait(18000)); }
+
+// the highlight reel: asked on the agent home, drawn from Sapiens2 pose and SAM 2.1 outlines, the smash replayed in slow
+// motion, captioned by Muse Glimmer, then shared
+if (run("highlight")) {
+  await go("", 1500);
+  await rec("highlight", async (mark) => {
+    await click(".ideas .chip", "highlight reel", 900); mark("asked");
+    await page.waitForFunction(() => location.hash.includes("auto=1"), { timeout: 15000 });
+    await wait(1200);
+    await scrollEl(".hl-grid", "start", 1200); mark("cutting");
+    await callout("fx1", `Players read by ${G}Sapiens2${E} and ${G}SAM 2.1${E} · no footage of anyone`, 80, 110);
+    // the first rally's smash replay, at real speed and pushed in on the reel
+    await page.waitForFunction(() => document.querySelector("canvas.hl-canvas")?.dataset.phase === "replay", { timeout: 180000, polling: 50 }); mark("replay");
+    await uncall("fx1");
+    const cv = await center("canvas.hl-canvas", null, .5, .41); // the picture, between the reel's titles and its stats
+    if (cv) await zoom(cv.x, cv.y, 1.55, 1000);
+    await callout("fx2", `The smash, in ${G}slow motion${E}`, 80, 110);
+    await page.waitForFunction(() => document.querySelector("canvas.hl-canvas")?.dataset.phase === "winner", { timeout: 60000, polling: 50 }); mark("replayed");
+    await wait(900);
+    await resetFx();
+    await page.waitForFunction(() => document.querySelector(".hl-done"), { timeout: 300000 }); mark("ready");
+    await page.waitForFunction(() => !/writing the caption/.test(document.querySelector(".hl-cap-by")?.innerText || "writing the caption"), { timeout: 120000 });
+    await scrollEl(".hl-done", "center", 1000); mark("caption");
+    const t = await center(".hl-done textarea");
+    if (t) await zoom(t.x, t.y, 1.2, 1500);
+    await callout("fx2", `Caption by Muse Glimmer · ${G}every number checked${E}`, 80, 110); await wait(3200);
+    await resetFx(); mark("share");
+    const ig = await at(".share-ig");
+    await move(ig.x, ig.y, 900);
+    await zoom(ig.x, ig.y, 1.3, 1300);
+    await callout("fx3", `One tap to ${G}Instagram${E} or ${G}Facebook${E}`, 80, 110); await wait(3400);
+  });
+  await resetFx();
+}
+
+if (run("end")) { await page.goto("file:///" + path.join(SCENES, "endcard.html").replace(/\\/g, "/")); await page.mouse.move(-10, -10); await rec("end", () => wait(8500)); }
+
+await browser.close();

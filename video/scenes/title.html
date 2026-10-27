@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Title</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1920px; height: 1080px; background: #fff; color: #0a0a0b; font-family: system-ui, "Segoe UI", sans-serif; overflow: hidden; position: relative; }
+  .wash { position: absolute; inset: 0; background: radial-gradient(ellipse at 80% 45%, rgba(10, 127, 68, .11), transparent 58%), radial-gradient(ellipse at 10% 95%, rgba(0, 129, 251, .07), transparent 45%); opacity: 0; animation: fade 1.6s .2s forwards; }
+  .copy { position: absolute; left: 120px; top: 210px; width: 820px; }
+  .brand { display: flex; align-items: center; gap: 16px; font: 800 44px/1 system-ui, sans-serif; letter-spacing: -.035em; opacity: 0; animation: up .8s .2s forwards; }
+  .brand svg { width: 58px; height: 58px; fill: none; stroke: #0a0a0b; stroke-width: 5.5; stroke-linecap: round; }
+  .brand path { stroke-dasharray: 80; stroke-dashoffset: 80; animation: draw 1.2s .3s forwards; }
+  .brand circle { fill: #0a7f44; opacity: 0; animation: fade .3s 1.3s forwards; }
+  h1 { font: 800 84px/1.04 system-ui, sans-serif; letter-spacing: -.045em; margin: 64px 0 32px; opacity: 0; animation: up .9s 1.0s forwards; }
+  h1 span { color: #0a7f44; }
+  p { font-size: 34px; line-height: 1.4; color: #3b3b40; opacity: 0; animation: up .9s 2.0s forwards; }
+  .chips { display: grid; gap: 18px; margin-top: 44px; }
+  .chip { display: flex; align-items: center; gap: 16px; font-size: 28px; font-weight: 650; opacity: 0; animation: up .7s forwards; }
+  .chip:nth-child(1) { animation-delay: 3.0s; } .chip:nth-child(2) { animation-delay: 3.5s; } .chip:nth-child(3) { animation-delay: 4.0s; }
+  .chip img { width: 34px; height: 34px; }
+  .shot { position: absolute; left: 960px; top: 170px; width: 900px; border-radius: 22px; overflow: hidden; border: 1px solid rgba(0, 0, 0, .12); box-shadow: 0 34px 100px rgba(0, 0, 0, .18); opacity: 0; transform: translateX(80px); animation: slide 1.4s 1.5s cubic-bezier(.2, .8, .2, 1) forwards; }
+  .shot img { display: block; width: 100%; }
+  .built { position: absolute; left: 120px; bottom: 64px; display: flex; align-items: center; gap: 14px; font-size: 24px; color: #65656c; opacity: 0; animation: fade 1s 4.6s forwards; }
+  .built img { height: 30px; }
+  .built b { color: #0a0a0b; font-weight: 700; }
+  @keyframes up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  @keyframes fade { to { opacity: 1; } }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes slide { to { opacity: 1; transform: none; } }
+</style></head>
+<body>
+  <div class="wash"></div>
+  <div class="copy">
+    <div class="brand"><svg viewBox="0 0 64 64"><path d="M10 48 C 22 8, 42 8, 54 30" /><circle cx="54" cy="30" r="5" /></svg>shuttlecoach</div>
+    <h1>We get lazy.<br><span>Your agents don't.</span></h1>
+    <p>They book the game, plan your week and coach you, 24 hours a day.</p>
+    <div class="chips">
+      <div class="chip"><img src="meta.svg" alt="">Built on Meta's Muse Glimmer</div>
+      <div class="chip"><img src="messenger.svg" alt="">A coach in your pocket, in Messenger</div>
+      <div class="chip"><img src="instagram.svg" alt="">Highlights straight to Instagram and Facebook</div>
+    </div>
+  </div>
+  <div class="shot"><img src="../../submission/shots/play_challenge_map.png" alt=""></div>
+  <div class="built"><img src="meta.svg" alt="Meta"><span>Built with <b>Muse Glimmer</b>, Meta's open model · Meta Global AI Developer Hackathon 2026</span></div>
+</body></html>

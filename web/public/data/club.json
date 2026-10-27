@@ -1,0 +1,676 @@
+{
+  "name": "Riverside Badminton Club",
+  "demo": true,
+  "note": "Sample club for the demo. The other members and their numbers are made up; your own numbers come from your analysed match.",
+  "night": {
+    "day": "Wed",
+    "start": "19:00",
+    "minutes": 90,
+    "courts": 3
+  },
+  "challenge": {
+    "title": "Fewer net errors",
+    "metric": "net errors per match",
+    "weeks": 2,
+    "started": "2026-10-19"
+  },
+  "members": [
+    {
+      "id": "hana",
+      "name": "Hana Chen",
+      "level": "B",
+      "hand": "R",
+      "weak": "rear backhand",
+      "strength": {
+        "shot": "smash",
+        "zone": "rear forehand"
+      },
+      "limit": null,
+      "net": [
+        9,
+        6
+      ],
+      "sessions": 3,
+      "shares": {
+        "goals": true,
+        "progress": true,
+        "highlights": true,
+        "limits": true
+      },
+      "xp": 310,
+      "badges": [
+        "streak-5",
+        "first-quest"
+      ],
+      "free": [
+        "Tue 19-22",
+        "Thu 18-22",
+        "Sat 09-13"
+      ],
+      "prefers": "doubles",
+      "venue": "riverside",
+      "mix": {
+        "Smash": 24,
+        "Net shot": 16,
+        "Lift": 10,
+        "Clear": 12,
+        "Drop": 14,
+        "Drive": 12,
+        "Block": 6,
+        "Push": 6
+      },
+      "area": {
+        "x": 3.3,
+        "y": 6.3,
+        "name": "Riverside"
+      }
+    },
+    {
+      "id": "ravi",
+      "name": "Ravi Patel",
+      "level": "A",
+      "hand": "R",
+      "weak": "front forehand",
+      "strength": {
+        "shot": "drive",
+        "zone": "mid backhand"
+      },
+      "limit": "no jump landings",
+      "net": [
+        12,
+        11
+      ],
+      "sessions": 2,
+      "shares": {
+        "goals": true,
+        "progress": true,
+        "highlights": false,
+        "limits": true
+      },
+      "xp": 180,
+      "badges": [
+        "iron-knee"
+      ],
+      "free": [
+        "Mon 19-22",
+        "Thu 19-22",
+        "Sun 10-14"
+      ],
+      "prefers": "doubles",
+      "venue": "north",
+      "mix": {
+        "Drive": 26,
+        "Push": 14,
+        "Smash": 16,
+        "Net shot": 14,
+        "Lift": 10,
+        "Clear": 8,
+        "Drop": 6,
+        "Block": 6
+      },
+      "area": {
+        "x": 6.2,
+        "y": 0.9,
+        "name": "North"
+      }
+    },
+    {
+      "id": "tomas",
+      "name": "Tomás Ruiz",
+      "level": "B",
+      "hand": "R",
+      "weak": "rear forehand",
+      "strength": {
+        "shot": "drop",
+        "zone": "front forehand"
+      },
+      "limit": null,
+      "net": [
+        15,
+        10
+      ],
+      "sessions": 4,
+      "shares": {
+        "goals": true,
+        "progress": true,
+        "highlights": true,
+        "limits": true
+      },
+      "xp": 420,
+      "badges": [
+        "net-ninja",
+        "streak-5",
+        "first-quest"
+      ],
+      "free": [
+        "Wed 18-22",
+        "Thu 19-22",
+        "Sat 08-12"
+      ],
+      "prefers": "any",
+      "venue": "riverside",
+      "mix": {
+        "Drop": 22,
+        "Net shot": 22,
+        "Lift": 14,
+        "Clear": 12,
+        "Smash": 10,
+        "Block": 8,
+        "Drive": 6,
+        "Push": 6
+      },
+      "area": {
+        "x": 2.0,
+        "y": 4.6,
+        "name": "Riverside"
+      }
+    },
+    {
+      "id": "yuki",
+      "name": "Yuki Sato",
+      "level": "A",
+      "hand": "L",
+      "weak": "mid backhand",
+      "strength": {
+        "shot": "smash",
+        "zone": "rear backhand"
+      },
+      "limit": null,
+      "net": [
+        7,
+        7
+      ],
+      "sessions": 3,
+      "shares": {
+        "goals": true,
+        "progress": true,
+        "highlights": true,
+        "limits": true
+      },
+      "xp": 260,
+      "badges": [
+        "first-quest"
+      ],
+      "free": [
+        "Tue 18-21",
+        "Fri 19-22",
+        "Sat 14-18"
+      ],
+      "prefers": "singles",
+      "venue": "north",
+      "mix": {
+        "Smash": 22,
+        "Clear": 18,
+        "Drop": 14,
+        "Net shot": 14,
+        "Lift": 12,
+        "Block": 8,
+        "Drive": 6,
+        "Push": 6
+      },
+      "area": {
+        "x": 6.0,
+        "y": 2.1,
+        "name": "North"
+      }
+    },
+    {
+      "id": "aisha",
+      "name": "Aisha Bello",
+      "level": "C",
+      "hand": "R",
+      "weak": "rear forehand",
+      "strength": {
+        "shot": "net shot",
+        "zone": "front backhand"
+      },
+      "limit": null,
+      "net": [
+        18,
+        13
+      ],
+      "sessions": 3,
+      "shares": {
+        "goals": true,
+        "progress": true,
+        "highlights": false,
+        "limits": true
+      },
+      "xp": 350,
+      "badges": [
+        "net-ninja",
+        "first-quest"
+      ],
+      "free": [
+        "Mon 18-21",
+        "Thu 18-21",
+        "Sun 09-12"
+      ],
+      "prefers": "doubles",
+      "venue": "lakeside",
+      "mix": {
+        "Net shot": 28,
+        "Lift": 18,
+        "Push": 12,
+        "Drop": 10,
+        "Clear": 10,
+        "Block": 10,
+        "Smash": 6,
+        "Drive": 6
+      },
+      "area": {
+        "x": 8.0,
+        "y": 7.1,
+        "name": "Lakeside"
+      }
+    },
+    {
+      "id": "leo",
+      "name": "Leo Park",
+      "level": "B",
+      "hand": "R",
+      "weak": "front backhand",
+      "strength": {
+        "shot": "smash",
+        "zone": "rear forehand"
+      },
+      "limit": "limit smash volume",
+      "net": [
+        10,
+        9
+      ],
+      "sessions": 2,
+      "shares": {
+        "goals": true,
+        "progress": true,
+        "highlights": true,
+        "limits": true
+      },
+      "xp": 140,
+      "badges": [],
+      "free": [
+        "Thu 19-22",
+        "Fri 18-22",
+        "Sat 09-12"
+      ],
+      "prefers": "any",
+      "venue": "riverside",
+      "mix": {
+        "Smash": 28,
+        "Drive": 14,
+        "Clear": 12,
+        "Drop": 12,
+        "Net shot": 12,
+        "Lift": 10,
+        "Block": 6,
+        "Push": 6
+      },
+      "area": {
+        "x": 3.8,
+        "y": 5.4,
+        "name": "Riverside"
+      }
+    },
+    {
+      "id": "noor",
+      "name": "Noor Haddad",
+      "level": "A",
+      "hand": "R",
+      "weak": "rear forehand",
+      "strength": {
+        "shot": "clear",
+        "zone": "rear backhand"
+      },
+      "limit": null,
+      "net": [
+        8,
+        5
+      ],
+      "sessions": 4,
+      "shares": {
+        "goals": true,
+        "progress": true,
+        "highlights": true,
+        "limits": true
+      },
+      "xp": 390,
+      "badges": [
+        "net-ninja",
+        "boss-slayer",
+        "first-quest"
+      ],
+      "free": [
+        "Tue 19-22",
+        "Wed 19-22",
+        "Sat 10-14"
+      ],
+      "prefers": "singles",
+      "venue": "riverside",
+      "mix": {
+        "Lift": 20,
+        "Net shot": 18,
+        "Clear": 16,
+        "Block": 14,
+        "Drop": 10,
+        "Smash": 10,
+        "Drive": 6,
+        "Push": 6
+      },
+      "area": {
+        "x": 2.6,
+        "y": 3.6,
+        "name": "Westgate"
+      }
+    },
+    {
+      "id": "sam",
+      "name": "Sam Okafor",
+      "level": "C",
+      "hand": "R",
+      "weak": "mid forehand",
+      "strength": {
+        "shot": "lift",
+        "zone": "rear backhand"
+      },
+      "limit": null,
+      "net": [
+        16,
+        15
+      ],
+      "sessions": 1,
+      "shares": {
+        "goals": true,
+        "progress": false,
+        "highlights": false,
+        "limits": true
+      },
+      "xp": 60,
+      "badges": [],
+      "free": [
+        "Sat 08-12",
+        "Sun 08-12"
+      ],
+      "prefers": "doubles",
+      "venue": "lakeside",
+      "mix": {
+        "Lift": 26,
+        "Clear": 22,
+        "Net shot": 14,
+        "Block": 12,
+        "Drop": 10,
+        "Smash": 6,
+        "Drive": 6,
+        "Push": 4
+      },
+      "area": {
+        "x": 9.1,
+        "y": 5.0,
+        "name": "Lakeside"
+      }
+    },
+    {
+      "id": "ines",
+      "name": "Ines Duarte",
+      "level": "B",
+      "hand": "L",
+      "weak": "rear backhand",
+      "strength": {
+        "shot": "drop",
+        "zone": "front backhand"
+      },
+      "limit": null,
+      "net": [
+        11,
+        8
+      ],
+      "sessions": 3,
+      "shares": {
+        "goals": true,
+        "progress": true,
+        "highlights": true,
+        "limits": true
+      },
+      "xp": 240,
+      "badges": [
+        "first-quest"
+      ],
+      "free": [
+        "Mon 19-22",
+        "Thu 18-21",
+        "Sun 14-18"
+      ],
+      "prefers": "any",
+      "venue": "north",
+      "mix": {
+        "Net shot": 20,
+        "Lift": 18,
+        "Drop": 18,
+        "Block": 14,
+        "Clear": 12,
+        "Smash": 8,
+        "Drive": 6,
+        "Push": 4
+      },
+      "area": {
+        "x": 6.8,
+        "y": 1.6,
+        "name": "North"
+      }
+    },
+    {
+      "id": "kenji",
+      "name": "Kenji Wu",
+      "level": "A",
+      "hand": "R",
+      "weak": "front forehand",
+      "strength": {
+        "shot": "push",
+        "zone": "rear forehand"
+      },
+      "limit": null,
+      "net": [
+        6,
+        6
+      ],
+      "sessions": 3,
+      "shares": {
+        "goals": true,
+        "progress": true,
+        "highlights": true,
+        "limits": true
+      },
+      "xp": 200,
+      "badges": [
+        "streak-5"
+      ],
+      "free": [
+        "Thu 19-22",
+        "Sat 09-12",
+        "Sun 09-12"
+      ],
+      "prefers": "doubles",
+      "venue": "riverside",
+      "mix": {
+        "Lift": 22,
+        "Net shot": 20,
+        "Block": 16,
+        "Push": 12,
+        "Smash": 10,
+        "Clear": 8,
+        "Drop": 6,
+        "Drive": 6
+      },
+      "area": {
+        "x": 6.6,
+        "y": 2.9,
+        "name": "Midtown"
+      }
+    },
+    {
+      "id": "priya",
+      "name": "Priya Nair",
+      "level": "B",
+      "hand": "R",
+      "weak": "rear forehand",
+      "strength": {
+        "shot": "smash",
+        "zone": "mid backhand"
+      },
+      "limit": "no jump landings",
+      "net": [
+        13,
+        12
+      ],
+      "sessions": 2,
+      "shares": {
+        "goals": true,
+        "progress": true,
+        "highlights": false,
+        "limits": true
+      },
+      "xp": 170,
+      "badges": [
+        "iron-knee"
+      ],
+      "free": [
+        "Wed 18-21",
+        "Fri 19-22",
+        "Sun 10-13"
+      ],
+      "prefers": "doubles",
+      "venue": "north",
+      "mix": {
+        "Smash": 26,
+        "Drop": 14,
+        "Clear": 14,
+        "Net shot": 14,
+        "Lift": 10,
+        "Drive": 10,
+        "Block": 6,
+        "Push": 6
+      },
+      "area": {
+        "x": 5.0,
+        "y": 0.7,
+        "name": "North"
+      }
+    }
+  ],
+  "feed": [
+    {
+      "id": "f0",
+      "who": "leo",
+      "kind": "game",
+      "text": "Doubles on Friday 19:30 at Riverside, court 2. One spot left, anyone?",
+      "ago": "40 min",
+      "cheers": 4,
+      "open": {
+        "day": "Fri",
+        "start": "19:30",
+        "venue": "Riverside Sports Centre",
+        "spots": 1
+      }
+    },
+    {
+      "id": "f1",
+      "who": "tomas",
+      "kind": "challenge",
+      "text": "Cut net errors from 15 to 10 in the first week of the challenge.",
+      "ago": "2 h",
+      "cheers": 22
+    },
+    {
+      "id": "f2",
+      "who": "hana",
+      "kind": "highlight",
+      "text": "Shared a highlight: 17-shot rally, finished with a cross-court smash.",
+      "ago": "5 h",
+      "cheers": 14
+    },
+    {
+      "id": "f2b",
+      "who": "kenji",
+      "kind": "game",
+      "text": "Looking for a singles match this weekend. Open to a challenge.",
+      "ago": "6 h",
+      "cheers": 8,
+      "open": {
+        "day": "Sat",
+        "start": "09:00",
+        "venue": "Midtown Community Gym",
+        "spots": 1,
+        "challenge": true
+      }
+    },
+    {
+      "id": "f3",
+      "who": "noor",
+      "kind": "plan",
+      "text": "Agreed four goals at her round table: rear-forehand defence first.",
+      "ago": "1 d",
+      "cheers": 6
+    },
+    {
+      "id": "f4",
+      "who": "ravi",
+      "kind": "limit",
+      "text": "His week avoids jump landings; the coaches swapped in low-impact footwork.",
+      "ago": "1 d",
+      "cheers": 9
+    },
+    {
+      "id": "f5",
+      "who": "aisha",
+      "kind": "challenge",
+      "text": "Down from 18 to 13 net errors: biggest drop among the C players.",
+      "ago": "2 d",
+      "cheers": 17
+    }
+  ],
+  "levels": [
+    0,
+    100,
+    250,
+    450,
+    700,
+    1000,
+    1400
+  ],
+  "badges": {
+    "first-quest": {
+      "name": "First quest",
+      "how": "Finish a coach quest"
+    },
+    "streak-5": {
+      "name": "Five-day streak",
+      "how": "Log training or recovery five days in a row"
+    },
+    "net-ninja": {
+      "name": "Net ninja",
+      "how": "Cut net errors by 30% or more in the challenge"
+    },
+    "iron-knee": {
+      "name": "Iron knee",
+      "how": "Keep every health limit for a whole week"
+    },
+    "boss-slayer": {
+      "name": "Boss slayer",
+      "how": "Take the boss's health to zero before the match"
+    }
+  },
+  "you": {
+    "free": [
+      "Mon 19-22",
+      "Tue 19-22",
+      "Thu 18-22",
+      "Sat 08-14",
+      "Sun 09-13"
+    ],
+    "venue": "riverside",
+    "area": {
+      "x": 2.4,
+      "y": 5.8,
+      "name": "Riverside"
+    }
+  }
+}

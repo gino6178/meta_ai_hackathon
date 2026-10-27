@@ -1,0 +1,18 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+# broadcast footage and third-party model weights are not ours to publish
+web/public/media/
+web/public/models/
+# players read from that footage (video/pose): Sapiens2 keypoints and SAM 2.1 outlines
+web/public/data/highlight_people.json
+video/pose/*.json
+# gateway state: players' chats and memories stay on the server
+agent/data/
+
+# demo video: recordings and renders are rebuilt by video/*.mjs
+video/build/
+video/*.mp4
