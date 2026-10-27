@@ -61,7 +61,7 @@ function script(q, ctx) {
     ["plan", holds
       ? `Fri · Base footwork. Shadow footwork from the new base (${dir}), 6 × 45 s, recovery under 1.2 s.`
       : `Fri · First-step reaction. Split-step drills from your current base with a coach feeding to the ${zoneName(top.key)}, 6 × 45 s, first step under 0.3 s.`],
-    ["plan", `Sat · Practice match. Record it; ShuttleCoach re-measures short lifts and smashes conceded in the ${zoneName(top.key)}.`],
+    ["plan", `Sat · Practice match. Record it; Serve re-measures short lifts and smashes conceded in the ${zoneName(top.key)}.`],
     ["verify", `Each session maps to an approved finding and has a measurable target. Approved.`],
   ];
 }

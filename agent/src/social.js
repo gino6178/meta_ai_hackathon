@@ -15,14 +15,15 @@ function allowed(picks) {
   return set;
 }
 const ok = (text, set) => nums(text.replace(/(\d+)[–-](\d+)/g, "$1 $2")).every((n) => set.has(n));
-const template = ({ player, event, picks }) => ({
-  text: `${player}: my top ${picks.length} from ${event}. ${picks.map((p) => (p.why || [])[0]).filter(Boolean).join(" · ")}.\n\n#badminton #rally #ShuttleCoach`,
-  by: "rules",
-});
+const template = ({ player, event, picks, own }) => own
+  ? { text: "My smash, slowed right down: Serve found me, read my pose and cut me out of the video.\n\n#badminton #smash #ServeApp", by: "rules" }
+  : { text: `${player}: my top ${picks.length} from ${event}. ${picks.map((p) => (p.why || [])[0]).filter(Boolean).join(" · ")}.\n\n#badminton #rally #ServeApp`, by: "rules" };
 
-export async function caption({ player = "Me", event = "", picks = [] } = {}) {
+// own: a reel of the player's own video (one smash, replayed in slow motion), not of a match's rallies
+export async function caption({ player = "Me", event = "", picks = [], own = null } = {}) {
+  if (own) { event = event || "my club game"; picks = [{ why: [own.what || "my smash, replayed in slow motion"], last: "smash" }]; }
   if (!picks.length) return template({ player, event, picks });
-  const list = picks.map((p, i) => `${i + 1}. ${(p.why || []).join(", ")} (game ${p.set}, ${p.shots} shots${p.last ? `, ended with a ${String(p.last).toLowerCase()}` : ""})`).join("\n");
+  const list = picks.map((p, i) => `${i + 1}. ${(p.why || []).join(", ")}${[p.set != null && `game ${p.set}`, p.shots != null && `${p.shots} shots`, p.last && `ended with a ${String(p.last).toLowerCase()}`].filter(Boolean).map((x, k) => (k ? `, ${x}` : ` (${x}`)).join("")}${p.set != null || p.shots != null || p.last ? ")" : ""}`).join("\n");
   const sys = `You write the caption for a badminton player's highlight reel on Instagram and Facebook.
 Player: ${player}. Event: ${event}.
 The rallies in the reel, in order:
@@ -39,9 +40,9 @@ Return JSON only: {"caption": string, "hashtags": [3 to 5 words without #]}
       const j = JSON.parse((r.text.match(/\{[\s\S]*\}/) || ["null"])[0] || "null");
       const text = typeof j?.caption === "string" ? j.caption.trim() : "";
       const tags = (Array.isArray(j?.hashtags) ? j.hashtags : []).map((x) => String(x).replace(/[^\p{L}\p{N}_]/gu, "")).filter(Boolean).slice(0, 5);
-      if (text && ok(text, set)) return { text: `${text}\n\n${[...new Set([...tags, "ShuttleCoach"])].map((x) => `#${x}`).join(" ")}`, by: "model", timing: r.timing };
+      if (text && ok(text, set)) return { text: `${text}\n\n${[...new Set([...tags, "ServeApp"])].map((x) => `#${x}`).join(" ")}`, by: "model", timing: r.timing };
       msgs.push({ role: "assistant", content: r.text }, { role: "user", content: `Use only the allowed numbers (${[...set].join(", ")}) and return the JSON again.` });
     }
   } catch { /* the model is unavailable: the template below */ }
-  return template({ player, event, picks });
+  return template({ player, event, picks, own });
 }

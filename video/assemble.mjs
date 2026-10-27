@@ -1,6 +1,6 @@
 // Assemble the Meta demo video: the recorded scenes (build/*.webm and build/marks.json), cut to the Kokoro narration
 // (build/kokoro/k*.wav and timings.json). The model's waits are sped up, and the video says so on screen.
-//   node assemble.mjs        -> ShuttleCoach_Meta_demo.mp4 and ShuttleCoach_Meta_demo_no_voice.mp4
+//   node assemble.mjs        -> Serve_Meta_demo.mp4 and Serve_Meta_demo_no_voice.mp4
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -53,6 +53,7 @@ function piece(name, a, b, d, note) {
 const LEN = NLEN.map((x, i) => +(LEAD + x + (i === NLEN.length - 1 ? 1.6 : 0.9)).toFixed(2));
 LEN[1] += 2.5; // the game going on, after the narration
 LEN[3] += 1.0; // the verified answer stays a moment
+LEN[8] += 2.5; // the two agents' agreement stays on screen
 const S = [];
 // 1 · title card: the pain point
 S.push([["title", 0.2, 0.2 + LEN[0], LEN[0]]]);
@@ -112,8 +113,18 @@ S.push([["pocket", 0.2, Math.min(m("pocket", "end"), 0.2 + LEN[5]), LEN[5]]]);
   const c1 = say(7, 1) + 2.0, c2 = say(7, 2) + 3.0;
   S.push([["lab", 0.2, m("lab", "playbooks"), c1], ["lab", m("lab", "playbooks"), m("lab", "adopted"), c2 - c1], ["lab", m("lab", "adopted"), m("lab", "end"), LEN[7] - c2]]);
 }
-// 9 · the club
-S.push([["club", 0.3, m("club", "feed"), LEN[8] * 0.55], ["club", m("club", "feed"), m("club", "end"), LEN[8] * 0.45]]);
+// 9 · the club: quests, the boss and the leaderboard; your best match (sped up); the two agents agreeing (sped up), then
+//     the agreed thread held
+{
+  const c1 = say(8, 1), c2 = say(8, 3), L = LEN[8], h = (k) => m("club", k);
+  S.push([
+    ["club", 0.3, h("ranks"), c1 * 0.5],
+    ["club", h("ranks"), h("challenges"), c1 * 0.5],
+    ["club", h("challenges"), h("talk"), c2 - c1, "Your agent scoring the club on Muse Glimmer"],
+    ["club", h("talk"), h("agreed"), (L - c2) * 0.45, "The two agents agreeing a time on Muse Glimmer"],
+    ["club", h("agreed"), h("end"), (L - c2) * 0.55],
+  ]);
+}
 // 10 · end card
 S.push([["end", 0.2, 0.2 + LEN[9], LEN[9]]]);
 
@@ -159,7 +170,7 @@ TIMES.forEach((rows, i) => rows.forEach((r, j) => {
 fs.writeFileSync(path.join(B, "subs.ass"), ass);
 fs.writeFileSync(path.join(B, "timeline.json"), JSON.stringify({ starts, lens: LEN, pieces: S }, null, 1));
 
-const OUT = path.join(HERE, "ShuttleCoach_Meta_demo.mp4"), OUT2 = path.join(HERE, "ShuttleCoach_Meta_demo_no_voice.mp4");
+const OUT = path.join(HERE, "Serve_Meta_demo.mp4"), OUT2 = path.join(HERE, "Serve_Meta_demo_no_voice.mp4");
 process.chdir(B);
 ff(["-i", silent, "-i", voice, "-vf", "subtitles=subs.ass", "-map", "0:v", "-map", "1:a", "-c:v", "libx264", "-crf", "19", "-preset", "medium", "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", OUT]);
 ff(["-i", silent, "-c:v", "copy", "-movflags", "+faststart", OUT2]);

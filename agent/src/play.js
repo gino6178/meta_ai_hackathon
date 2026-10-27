@@ -255,7 +255,7 @@ async function words(o, you, challenge = false) {
   const style = o.partners.map((p) => p.why.find((w) => /style match/.test(w))).filter(Boolean);
   const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], d = dateOf(o.date), when = `${o.day} ${d.getDate()} ${MON[d.getMonth()]}`;
   const mine = (o.travel || []).find((t) => t.id === "you"), trip = (id) => (o.travel || []).find((t) => t.id === id);
-  const sys = `You write for ShuttleCoach, a badminton app whose agent books courts and invites friends.
+  const sys = `You write for Serve, a badminton app whose agent books courts and invites friends.
 The game: ${o.format}, ${when}, ${o.start}-${o.end}, ${o.venue.name}, court ${o.court}, NT$${o.each} each, pay at the venue.${mine ? ` The player's trip there: ${mine.min} min. The venue was picked so the longest trip (${o.longest} min) is as short as possible.` : ""}
 Partners: ${o.partners.map((p) => `${p.id} (${p.name}): ${p.why.join("; ") || "free at that time"}${trip(p.id) ? `; their own trip: ${trip(p.id).min} min` : ""}`).join(" | ")}
 ${you.limit ? `The player has a health limit (${you.limit}); doubles is easier on it.` : ""}
@@ -331,7 +331,7 @@ export async function book({ option, invites = {}, you = {} } = {}) {
   // demo members answer by themselves a few seconds later; whether they accept is fixed per booking. Someone the
   // player asked for by name, and who is free then, says yes more often.
   const asked = new Set(option.asked || []);
-  const invite = (id, k, text) => { const m = club.members.find((x) => x.id === id); return { id, name: m?.name ?? id, text, asked: asked.has(id), sentAt: t0 + k * 400, answerAt: t0 + 2500 + Math.floor(hash(`${hold.ref}${id}`) * 5000) + k * 600, accept: hash(`${hold.ref}|${id}|yes`) > (asked.has(id) ? 0.1 : 0.22) }; };
+  const invite = (id, k, text) => { const m = club.members.find((x) => x.id === id); return { id, name: m?.name ?? id, text, asked: asked.has(id), sentAt: t0 + k * 400, answerAt: t0 + 2500 + Math.floor(hash(`${hold.ref}${id}`) * 5000) + k * 600, accept: (option.agreed || []).includes(id) || hash(`${hold.ref}|${id}|yes`) > (asked.has(id) ? 0.1 : 0.22) }; };
   const b = { id: hold.ref, created: t0, option, need: option.players - 1, invites: option.partners.map((p, k) => invite(p.id, k, invites[p.id] || `Hi ${p.name.split(" ")[0]}, ${option.format} on ${option.day} ${option.start} at ${option.venue.name}? NT$${option.each} each.`)),
     spare: option.spare || [], log: [{ at: t0, text: `Held court ${option.court} at ${option.venue.name}, ${option.day} ${option.start}–${option.end} (ref ${hold.ref}). Pay at the venue.` }], cancelled: false };
   db.bookings = [b, ...db.bookings].slice(0, 50); save();
@@ -367,6 +367,9 @@ export function status(id) {
   save();
   return { ...b, yes, pending, invites: b.invites.map(({ accept, ...x }) => ({ ...x, status: x.answered ? (accept ? "in" : "out") : "sent" })) };
 }
+
+// for the best-match agent and agent-to-agent scheduling (match.js)
+export const helpers = { windows, travelMin, kmBetween, ymd, hm, toMin, dateOf, readVenues, DAYS };
 
 export function cancel(id) {
   const b = db.bookings.find((x) => x.id === id);

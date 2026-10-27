@@ -26,6 +26,8 @@ const browser = await puppeteer.launch({
 const page = await browser.newPage();
 await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
 await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
+// the demo video shows no broadcast footage: the highlight reel is recorded in its drawn-only picture
+await page.evaluateOnNewDocument(() => { try { localStorage.setItem("shuttlecoach.reel.src", "drawn"); } catch { /* file:// pages */ } });
 // a visible cursor with a click ring: headless screencasts show no pointer
 await page.evaluateOnNewDocument(() => {
   addEventListener("DOMContentLoaded", () => {
@@ -255,25 +257,39 @@ if (run("lab")) {
   await resetFx();
 }
 
-// the club: a quest logged against the boss, then an open game joined from the feed
+// the club: a quest logged against the boss, the leaderboard, then your best match and your agent talking to theirs
 if (run("club")) {
   await go("goals", 1800);
   await rec("club", async (mark) => {
     const q = await center(".quests");
-    if (q) { await zoom(q.x, q.y * .8, 1.1, 1600); await wait(400); }
-    await click(".quest .btn", null, 900); mark("logged"); await wait(1200);
-    await click(".quest .btn", null, 700); await wait(1000);
+    if (q) { await zoom(q.x, q.y * .8, 1.1, 1300); await wait(300); }
+    await click(".quest .btn", null, 800); mark("logged"); await wait(900);
     await resetFx();
     const b = await center(".boss");
-    if (b) { await zoom(b.x, b.y, 1.2, 1500); await wait(400); }
-    await callout("fx1", `Every logged quest takes ${G}health off the boss${E}`); await wait(3000);
+    if (b) { await zoom(b.x, b.y, 1.2, 1200); await wait(300); }
+    await callout("fx1", `Every logged quest takes ${G}health off the boss${E}`); await wait(2200);
     await resetFx();
-    await go("club", 1500); mark("feed");
-    await move(900, 500, 900); await wait(800);
-    await click(".open-card .btn", null, 900); mark("joined"); await wait(1000);
-    const j = await center(".open-card");
-    if (j) await zoom(j.x, j.y, 1.25, 1500);
-    await callout("fx2", `Joined Leo's game: ${G}one tap${E}`); await wait(3000);
+    await go("club?tab=ranks", 1200); mark("ranks");
+    const p = await center(".podium");
+    if (p) await zoom(p.x, p.y + 120, 1.12, 1400);
+    await callout("fx2", `A club rating that ${G}every challenge moves${E}`, 80, 110); await wait(2600);
+    await resetFx();
+    await click(".club-tabs a", "Challenges", 800); await wait(900); mark("challenges");
+    await click(".best .btn.primary", "Find my best match", 800); mark("best");
+    await page.waitForFunction(() => document.querySelector(".best-list"), { timeout: 180000, polling: 200 }); mark("picked");
+    await wait(600);
+    const top = await center(".best-list li.top");
+    if (top) await zoom(top.x, top.y, 1.18, 1300);
+    await callout("fx3", `Your best match: ${G}fair by rating${E}, free when you are, good for your weak zone`, 80, 110); await wait(3000);
+    await resetFx();
+    await click(".best-list li.top .btn", null, 800); mark("talk");
+    await page.waitForFunction(() => document.querySelector(".a2a-book") || document.querySelector(".a2a .muted.small"), { timeout: 300000, polling: 200 }); mark("agreed");
+    await page.evaluate(() => document.querySelector(".a2a").scrollIntoView({ behavior: "smooth", block: "center" })); await wait(900);
+    const th = await center(".a2a");
+    if (th) await zoom(th.x, th.y, 1.12, 1300);
+    await callout("fx4", `${G}Agent to agent${E}: every time checked against both calendars`, 80, 110); await wait(3200);
+    const bk = await at(".a2a-book .btn", null, false).catch(() => null);
+    if (bk) { await move(bk.x, bk.y, 800); await wait(900); }
   });
   await resetFx();
 }

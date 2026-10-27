@@ -43,7 +43,7 @@ const MORE = [
   { k: "memory", label: "Player memory", note: "What the coaches remember", icon: "memory" },
   { k: "messages", label: "Coaches in Messenger", note: "Your 24-hour coach, in your pocket", icon: "chat" },
   { k: "lab", label: "Lab", note: "How the coaches improve", icon: "verify" },
-  { k: "about", label: "About ShuttleCoach", note: "How it works, privacy", icon: "info" },
+  { k: "about", label: "About Serve", note: "How it works, privacy", icon: "info" },
 ];
 const href = (k) => `#/${k === "home" ? "" : k}`;
 const THEME = "shuttlecoach.theme";
@@ -83,8 +83,8 @@ function Shell({ page, data }) {
   return (
     <>
       <header className="side">
-        <a className="brand" href="#/" aria-label="ShuttleCoach, your agent">
-          <Mark /><span>shuttlecoach</span>
+        <a className="brand" href="#/" aria-label="Serve, your agent">
+          <Mark /><span>serve</span>
         </a>
         <nav className="side-nav" aria-label="Main">
           {[...TABS, INBOX].map((it) => (

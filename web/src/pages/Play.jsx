@@ -15,7 +15,7 @@ import "./play.css";
 // opens the map, checks the courts, lines up everyone's calendar, picks the venue in the middle and writes the invites.
 // Each step shows up on the map and in the trail as it finishes. Nothing is booked until you confirm; then the court
 // is held, invites go out, and the agent follows up until the game is on.
-const EXAMPLES = ["Challenge Kenji to a singles match this week", "Doubles on Thursday evening with Hana", "Spar with someone who plays like my next opponent", "我週六早上想打球"];
+const EXAMPLES = ["Challenge Kenji to a singles match this week", "Doubles on Thursday evening with Hana", "Spar with someone who plays like my next opponent", "Doubles this weekend with anyone around my level"];
 const TOOL = { read_request: "spark", open_map: "pin", search_courts: "book", match_style: "coaches", find_players: "coaches", calendar: "clock", travel: "route", health_limit: "heart", write_invites: "send", verify: "verify" };
 const initials = (n) => n.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 const first = (n) => n.split(" ")[0];
@@ -25,9 +25,9 @@ function ics(b) {
   const o = b.option, d = o.date.replace(/-/g, ""), t = (x) => `${d}T${x.replace(":", "")}00`;
   const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+/, "");
   const who = b.invites.filter((i) => i.status === "in").map((i) => i.name).join(", ");
-  const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ShuttleCoach//Play//EN", "BEGIN:VEVENT", `UID:${b.id}@shuttlecoach`, `DTSTAMP:${stamp}`,
+  const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Serve//Play//EN", "BEGIN:VEVENT", `UID:${b.id}@serve`, `DTSTAMP:${stamp}`,
     `DTSTART:${t(o.start)}`, `DTEND:${t(o.end)}`, `SUMMARY:Badminton ${o.format} at ${o.venue.name}`, `LOCATION:${o.venue.name}, court ${o.court}`,
-    `DESCRIPTION:With ${who || "the club"}. NT$${o.each} each, pay at the venue. Ref ${b.id}. Booked with ShuttleCoach.`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
+    `DESCRIPTION:With ${who || "the club"}. NT$${o.each} each, pay at the venue. Ref ${b.id}. Booked with Serve.`, "END:VEVENT", "END:VCALENDAR"].join("\r\n");
   return URL.createObjectURL(new Blob([body], { type: "text/calendar" }));
 }
 const trips = (o) => (o.travel || []).map((t) => <span key={t.id} className={`trip ${t.min === o.longest ? "long" : ""}`}><Icon name="route" size={14} />{t.id === "you" ? "You" : first(t.name)} {t.min} min</span>);
@@ -80,7 +80,7 @@ function Booking({ t, you }) {
       </ul>
       <ol className="play-log">{b.log.map((l, k) => <li key={k}><span className="mono tiny">{new Date(l.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>{l.text}</li>)}</ol>
       <div className="play-actions">
-        {st === "confirmed" && <a className="btn primary" href={ics(b)} download={`shuttlecoach_${b.id}.ics`}><Icon name="download" size={16} />Add to calendar</a>}
+        {st === "confirmed" && <a className="btn primary" href={ics(b)} download={`serve_${b.id}.ics`}><Icon name="download" size={16} />Add to calendar</a>}
         {st === "confirmed" && <a className="btn ghost" href={shareLinks(`Badminton ${o.format}, ${o.day} ${o.start}-${o.end} at ${o.venue.name}, court ${o.court}. NT$${o.each} each. With ${b.invites.filter((i) => i.status === "in").map((i) => first(i.name)).join(", ")}.`).whatsapp} target="_blank" rel="noopener noreferrer">Share to the group chat</a>}
         {st === "confirmed" && <a className="btn ghost" href="#/coach/fitness">Ask Coach Ren how to warm up</a>}
         {st !== "cancelled" && <button className="btn ghost" onClick={() => cancelFor(t.id).catch((x) => setErr(`Could not cancel (${x.message}).`))}>Cancel booking</button>}
@@ -216,7 +216,7 @@ export default function Play({ data }) {
         <div className="rt-peek" onClick={() => setConfirm(null)}>
           <div ref={dlg} className="play-confirm" role="dialog" aria-modal="true" aria-labelledby="cf-h" onClick={(e) => e.stopPropagation()}>
             <h2 id="cf-h" className="panel-h">{res.intent?.challenge ? "Send this challenge?" : "Book this game?"}</h2>
-            <p>ShuttleCoach will hold <b>court {confirm.court} at {confirm.venue.name}</b> on <b>{confirm.day} {confirm.start}–{confirm.end}</b> and invite {confirm.partners.map((p) => first(p.name)).join(", ")}. You pay <b>NT${confirm.each}</b> at the venue; nothing is charged here.</p>
+            <p>Serve will hold <b>court {confirm.court} at {confirm.venue.name}</b> on <b>{confirm.day} {confirm.start}–{confirm.end}</b> and invite {confirm.partners.map((p) => first(p.name)).join(", ")}. You pay <b>NT${confirm.each}</b> at the venue; nothing is charged here.</p>
             <div className="trips">{trips(confirm)}</div>
             <h3 className="tiny muted">The invites{res.invites && confirm.id === res.options[0]?.id ? ", written by Muse Glimmer and checked against this booking" : ""}</h3>
             <ul className="cf-invites">{confirm.partners.map((p) => <li key={p.id}><b>{first(p.name)}</b> {(confirm.id === res.options[0]?.id && res.invites[p.id]) || `Hi ${first(p.name)}, ${confirm.format} on ${confirm.day} ${confirm.start}–${confirm.end} at ${confirm.venue.name}? NT$${confirm.each} each.`}</li>)}</ul>

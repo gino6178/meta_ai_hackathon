@@ -27,7 +27,8 @@ const IDEAS = [
   "Get this week's quests",
   "Make my highlight reel for Instagram",
   "How should I warm up before Thursday?",
-  "我週六早上想打球",
+  "Find my best match this week",
+  "Find me a random match this weekend",
 ];
 const initials = (n) => n.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 const first = (n) => n.split(" ")[0];
@@ -83,6 +84,9 @@ export default function Agent({ data }) {
     if (kind === "quests") return startQuests(memory.all().map((x) => x.text));
     if (kind === "roundtable") return go("roundtable");
     if (kind === "highlight") return go("match?tab=reel&auto=1");
+    if (kind === "best") return go(`club?tab=challenges&best=1${/doubles|partner/i.test(q) ? "&fmt=doubles" : ""}`);
+    if (kind === "random") return go(`club?tab=challenges&spin=1${/doubles/i.test(q) ? "&fmt=doubles" : ""}${/weekend/i.test(q) ? "&when=weekend" : /weekday|evening/i.test(q) ? "&when=weekday" : ""}`);
+    if (kind === "ranks") return go("club?tab=ranks");
     if (kind === "night") {
       const t = tactics(data.outcomes, "A"), net = t.errReasons.find(([k]) => k === "net")?.[1] ?? 0;
       return startNight({ name: "You", weak: you.weak, net: [net, net], limit: you.limit, sessions: 0 });
@@ -100,6 +104,8 @@ export default function Agent({ data }) {
   const game = tasks.find((t) => t.kind === "play" && t.booking && t.booking.state !== "cancelled");
   const g = readGame(), wk = isoWeek(), q = g.quests?.week === wk ? g.quests.data : null;
   const logged = q ? q.quests.filter((x) => (g.progress?.[`${wk}:${x.id}`] || 0) >= x.target).length : 0;
+  // challenges members sent you, not answered yet (Club, Challenges tab)
+  const asked = (club?.incoming || []).filter((c) => !g.arena?.answered?.[c.id]).map((c) => ({ ...c, m: club.members.find((x) => x.id === c.from) })).filter((c) => c.m);
 
   // stories: one from each coach, then members who posted in the club
   const stories = !tip || !club ? [] : [
@@ -141,10 +147,21 @@ export default function Agent({ data }) {
             <div className="ideas" aria-label="Ideas">{IDEAS.map((x) => <button key={x} type="button" className="chip" onClick={() => ask(x)}>{x}</button>)}</div>
           </section>
 
-          {(needs.length > 0 || learn?.waiting.length > 0) && (
+          {(needs.length > 0 || learn?.waiting.length > 0 || asked.length > 0) && (
             <section className="task-sec" aria-labelledby="needs-h">
               <h2 id="needs-h" className="sec-label">Needs you</h2>
               {needs.map((t) => <TaskCard key={t.id} t={t} />)}
+              {asked.length > 0 && (
+                <article className="task needs" aria-label="Challenges for you">
+                  <span className="task-av" aria-hidden="true"><Icon name="club" size={22} /></span>
+                  <div className="task-body">
+                    <header><b>{club.name}</b><span className="task-state needs">Needs you</span></header>
+                    <p className="task-said plain">{asked.map((c) => first(c.m.name)).join(" and ")} challenged you</p>
+                    <p className="task-sum">{first(asked[0].m.name)}: “{asked[0].note}”</p>
+                    <a className="btn sm primary" href="#/club?tab=challenges">Answer<Icon name="next" size={16} /></a>
+                  </div>
+                </article>
+              )}
               {learn?.waiting.length > 0 && (
                 <article className="task needs" aria-label="Playbook changes waiting for your approval">
                   <span className="task-av" aria-hidden="true"><Icon name="verify" size={22} /></span>

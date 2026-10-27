@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { shareLinks, postToClub, clubShares } from "../club/share.js";
-import { agentCaption } from "../agent.js";
+import { agentCaption, agentReel } from "../agent.js";
 import Brand from "../components/Brand.jsx";
+import Icon from "../components/Icon.jsx";
 
 // Auto highlight reel: picks a player's best rallies from the labels, then renders them with broadcast-style camera
 // work on a canvas: a follow-cam that tracks the shuttle between hitter and receiver (court positions projected into
@@ -14,9 +15,13 @@ import Brand from "../components/Brand.jsx";
 // (outline) have read both players on the GPU server (video/pose/people.py): the drawn reel then shows the match as the
 // broadcast camera saw it, players as their outlines with their skeletons, and the footage reel lights up the smasher.
 const COL = { A: "#6FB6FF", B: "#FF8A6B" };
+// split: with footage, the real rally goes on top and Serve's view of it (Sapiens2 skeletons, SAM 2.1 outlines)
+// under it in the vertical format, or as an inset in the wide one: what you post is you, and the reel shows how
 const FORMATS = {
-  vertical: { W: 720, H: 1280, label: "9:16 vertical", note: "Reels, TikTok, Shorts", vid: { x: 0, y: 170, w: 720, h: 720 }, zoom: 1.05 },
-  wide: { W: 1280, H: 720, label: "16:9 wide", note: "YouTube, club screens", vid: { x: 0, y: 0, w: 1280, h: 720 }, zoom: 1.3 },
+  vertical: { kind: "vertical", W: 720, H: 1280, label: "9:16 vertical", note: "Reels, TikTok, Shorts", vid: { x: 0, y: 170, w: 720, h: 720 }, zoom: 1.05,
+    split: { vid: { x: 0, y: 170, w: 720, h: 540 }, ai: { x: 0, y: 722, w: 720, h: 390 } } },
+  wide: { kind: "wide", W: 1280, H: 720, label: "16:9 wide", note: "YouTube, club screens", vid: { x: 0, y: 0, w: 1280, h: 720 }, zoom: 1.3,
+    split: { ai: { x: 1280 - 424, y: 720 - 290, w: 400, h: 225 } } },
 };
 const SRC = { w: 854, h: 480 };
 const cap = (s) => s.replace(/^\w/, (c) => c.toUpperCase());
@@ -180,15 +185,15 @@ function scene(ctx, vid, r, t, cam, phase) {
 
 // the drawn picture's note: top left in the vertical format, bottom right in the wide one (clear of the titles)
 function tag(ctx, vid, text) {
-  ctx.fillStyle = "#ffffffa8"; ctx.font = "600 17px Segoe UI, sans-serif";
-  if (vid.y) ctx.fillText(text, vid.x + 24, vid.y + 32);
+  ctx.fillStyle = "#ffffffa8"; ctx.font = `600 ${Math.min(17, Math.round(vid.w / 26))}px Segoe UI, sans-serif`;
+  if (vid.y) ctx.fillText(text, vid.x + Math.min(24, vid.w / 30), vid.y + Math.min(32, vid.h / 9));
   else { ctx.textAlign = "right"; ctx.fillText(text, vid.x + vid.w - 24, vid.y + vid.h - 44); ctx.textAlign = "left"; }
 }
 
 // the camera's crop of the clip (clip pixels) for a view and zoom, and the map from clip pixels onto the canvas
-function cropOf(vid, cam) {
-  const ar = vid.w / vid.h, ch = Math.min(SRC.h, SRC.w / ar) / cam.z, cw = ch * ar;
-  const sx = Math.max(0, Math.min(SRC.w - cw, cam.x - cw / 2)), sy = Math.max(0, Math.min(SRC.h - ch, cam.y - ch / 2)), k = vid.w / cw;
+function cropOf(vid, cam, src = SRC) {
+  const ar = vid.w / vid.h, ch = Math.min(src.h, src.w / ar) / cam.z, cw = ch * ar;
+  const sx = Math.max(0, Math.min(src.w - cw, cam.x - cw / 2)), sy = Math.max(0, Math.min(src.h - ch, cam.y - ch / 2)), k = vid.w / cw;
   return { sx, sy, cw, ch, k, P: ([x, y]) => [vid.x + (x - sx) * k, vid.y + (y - sy) * k] };
 }
 const outlinePath = (ctx, m, P) => { ctx.beginPath(); for (let i = 0; i < m.length; i += 2) { const [x, y] = P([m[i], m[i + 1]]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); } ctx.closePath(); };
@@ -202,7 +207,7 @@ function skeleton(ctx, p, P, lw, color = "#ffffffd9") {
 // the rally as the broadcast camera saw it, without its pixels: the court through the match homography, both players
 // as their SAM 2.1 outlines with their Sapiens2 skeletons, the shuttle from racket to racket. The follow-cam and the
 // replay's push-in crop it exactly as they crop the footage.
-function persp(ctx, vid, r, t, crop, M, h, phase) {
+function persp(ctx, vid, r, t, crop, M, h, phase, note = "Drawn from Sapiens2 pose + SAM 2.1 outlines · no footage") {
   const { k, P } = crop, C = (q) => P(project(M, q)), up = (q, m) => { const [x, y] = C(q); return [x, y - m * .9 * across(M, q) * k]; };
   ctx.save(); ctx.beginPath(); ctx.rect(vid.x, vid.y, vid.w, vid.h); ctx.clip();
   const bg = ctx.createLinearGradient(0, vid.y, 0, vid.y + vid.h); bg.addColorStop(0, "#030607"); bg.addColorStop(1, "#0A1A14");
@@ -256,7 +261,7 @@ function persp(ctx, vid, r, t, crop, M, h, phase) {
     if (sh.last && sh.u >= 1 && sh.s.land) { const [lx, ly] = C(sh.s.land); ctx.strokeStyle = COL[sh.s.p]; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(lx, ly, 10 * k, 3.6 * k, 0, 0, 7); ctx.stroke(); }
   }
   ctx.restore();
-  tag(ctx, vid, "Drawn from Sapiens2 pose + SAM 2.1 outlines · no footage");
+  tag(ctx, vid, note);
 }
 
 // the replay's spotlight on the footage: the frame dims except the smasher, whom SAM 2.1 cut out, and a rim of light
@@ -297,7 +302,7 @@ function frame(ctx, F, h, k, total, m, video, t, cam, phase) {
     ctx.fillStyle = g; ctx.fillRect(vid.x, vid.y, vid.w, vid.h);
     const bar = vid.h * .07;
     ctx.fillStyle = "#000"; ctx.fillRect(vid.x, vid.y, vid.w, bar); ctx.fillRect(vid.x, vid.y + vid.h - bar, vid.w, bar);
-    const by = vid.y + bar + (F === FORMATS.wide ? 100 : 16), badge = phase === "impact" ? "● CONTACT" : `▶ ${h.fs.type.toUpperCase()} · SLOW-MO`;
+    const by = vid.y + bar + (F.kind === "wide" ? 100 : 16), badge = phase === "impact" ? "● CONTACT" : `▶ ${h.fs.type.toUpperCase()} · SLOW-MO`;
     ctx.font = "800 24px Consolas, monospace";
     ctx.fillStyle = "#D6332A"; ctx.beginPath(); ctx.roundRect(vid.x + 24, by, ctx.measureText(badge).width + 28, 46, 8); ctx.fill();
     ctx.fillStyle = "#fff"; ctx.fillText(badge, vid.x + 38, by + 31);
@@ -325,9 +330,27 @@ function frame(ctx, F, h, k, total, m, video, t, cam, phase) {
     const v = shotSpeed(r, shown.length - 1);
     pill(ctx, vid.x + 24, vb - 78, `${cur.type} · ${names[cur.p].split(" ")[0]}${v ? ` · avg ${Math.round(v)} km/h` : ""}`, COL[cur.p]);
   }
+  // the split reel: Serve's view of the same moment, same camera, under the footage (or as an inset)
+  if (F.ai && m.cam) {
+    const a = F.ai, wide = F.kind === "wide";
+    if (wide) { ctx.fillStyle = "#04070A"; ctx.beginPath(); ctx.roundRect(a.x - 5, a.y - 5, a.w + 10, a.h + 10, 12); ctx.fill(); }
+    persp(ctx, a, r, t, cropOf(a, cam), m.cam, h, phase, wide ? "How Serve sees it" : "How Serve sees it · Sapiens2 pose + SAM 2.1 outlines");
+    if (wide) { ctx.strokeStyle = "#ffffffcc"; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(a.x, a.y, a.w, a.h, 8); ctx.stroke(); }
+  }
   const head = cap(h.why[0] || "");
-  if (F === FORMATS.vertical) {
-    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 22px Consolas, monospace"; ctx.fillText("SHUTTLECOACH · TOP " + total, 40, 62);
+  if (F.kind === "vertical" && F.ai) {
+    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 22px Consolas, monospace"; ctx.fillText("SERVE · TOP " + total, 40, 62);
+    ctx.fillStyle = "#8A979E"; ctx.textAlign = "right"; ctx.fillText(`${k + 1} / ${total}`, W - 40, 62); ctx.textAlign = "left";
+    ctx.fillStyle = "#EEF1F2"; ctx.font = "700 40px Segoe UI, sans-serif"; ctx.fillText(names[r.winner], 40, 120);
+    ctx.fillStyle = "#8A979E"; ctx.font = "400 22px Segoe UI, sans-serif"; ctx.fillText(`vs ${names[r.winner === "A" ? "B" : "A"]} · Game ${r.set} · ${m.event}`, 40, 152);
+    const y0 = F.ai.y + F.ai.h + 58;
+    ctx.fillStyle = "#F2E6C9"; ctx.font = "800 44px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(head, 40, y0);
+    ctx.fillStyle = "#8A979E"; ctx.font = "600 20px Consolas, monospace"; ctx.textAlign = "right";
+    ctx.fillText(`SHOT ${shown.length} / ${r.shots.length}`, W - 40, y0); ctx.textAlign = "left";
+    r.shots.forEach((s, i) => { ctx.fillStyle = s.t <= t || phase === "winner" ? COL[s.p] : "#1E282E"; ctx.fillRect(40 + i * (640 / r.shots.length), y0 + 22, 640 / r.shots.length - 3, 8); });
+    ctx.fillStyle = "#5FD39A"; ctx.font = "500 18px Consolas, monospace"; ctx.fillText("● read on your own GPU · YOLO, Sapiens2, SAM 2.1", 40, H - 30);
+  } else if (F.kind === "vertical") {
+    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 22px Consolas, monospace"; ctx.fillText("SERVE · TOP " + total, 40, 62);
     ctx.fillStyle = "#8A979E"; ctx.textAlign = "right"; ctx.fillText(`${k + 1} / ${total}`, W - 40, 62); ctx.textAlign = "left";
     ctx.fillStyle = "#EEF1F2"; ctx.font = "700 40px Segoe UI, sans-serif"; ctx.fillText(names[r.winner], 40, 120);
     ctx.fillStyle = "#8A979E"; ctx.font = "400 22px Segoe UI, sans-serif"; ctx.fillText(`vs ${names[r.winner === "A" ? "B" : "A"]} · Game ${r.set} · ${m.event}`, 40, 152);
@@ -343,7 +366,7 @@ function frame(ctx, F, h, k, total, m, video, t, cam, phase) {
   } else {
     const g = ctx.createLinearGradient(0, 0, 0, 140); g.addColorStop(0, "#04070ACC"); g.addColorStop(1, "#04070A00");
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, 140);
-    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 20px Consolas, monospace"; ctx.fillText(`SHUTTLECOACH · TOP ${total} · ${k + 1}/${total}`, 32, 44);
+    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 20px Consolas, monospace"; ctx.fillText(`SERVE · TOP ${total} · ${k + 1}/${total}`, 32, 44);
     ctx.fillStyle = "#EEF1F2"; ctx.font = "800 40px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(`${head} · ${names[r.winner]}`, 32, 92);
     ctx.fillStyle = "#04070AD0"; ctx.beginPath(); ctx.roundRect(W - 132, 24, 108, 220, 10); ctx.fill();
     drawMap(ctx, r, shown, W - 122, 34, 88, 194);
@@ -400,7 +423,9 @@ async function run(canvas, F, list, m, stopRef, onStep, drawn = false, people = 
       v = document.createElement("video");
       v.muted = true; v.playsInline = true; v.src = `/media/rallies/${r.clip}`;
       await Promise.all([new Promise((ok) => { v.oncanplay = ok; v.onerror = ok; }), wait(1000)]);
+      if (!v.videoWidth) v = clockFor(r); // no footage for this rally here: draw it instead
     }
+    const L = !v.court && h.pp && M ? { ...F, ...F.split } : F;
     const cam = { x: SRC.w / 2, y: SRC.h / 2, z: 1 };
     // camera: eases toward a point in clip pixels; zoom has its own (slower or faster) rate
     const toward = (dt, zGoal, [tx, ty], rate = 2.4, zRate = 1.6) => {
@@ -424,7 +449,7 @@ async function run(canvas, F, list, m, stopRef, onStep, drawn = false, people = 
     const follow = (dt, zGoal, look, rate) => { const [x, y] = px(look); toward(dt, zGoal, [x, y - 30], rate); };
     // 1 live action with the follow-cam
     await v.play().catch(() => {});
-    await playUntil(v, null, stopRef, (dt) => { follow(dt, F.zoom, target(r, v.currentTime)); frame(ctx, F, h, k, list.length, m, v, v.currentTime, cam, "live"); });
+    await playUntil(v, null, stopRef, (dt) => { follow(dt, L.zoom, target(r, v.currentTime)); frame(ctx, L, h, k, list.length, m, v, v.currentTime, cam, "live"); });
     if (stopRef.current) break;
     // 2 instant replay of the smash (or the last shot), built like a broadcast replay:
     //    speed ramps down into slow motion, to a quarter, while the camera pushes in tight on the player who hits it,
@@ -438,8 +463,8 @@ async function run(canvas, F, list, m, stopRef, onStep, drawn = false, people = 
         const u = Math.min(1, (v.currentTime - from) / Math.max(.2, last.t - from));
         v.playbackRate = Math.max(.25, .6 - .35 * u); // speed ramp into slow motion
         cam.u = u; // the spotlight comes up as the replay slows
-        toward(dt, F.zoom * (1 + 1.2 * u), smasher(v.currentTime, who, .4 * u), 3.2, 2.2);
-        frame(ctx, F, h, k, list.length, m, v, v.currentTime, cam, "replay");
+        toward(dt, L.zoom * (1 + 1.2 * u), smasher(v.currentTime, who, .4 * u), 3.2, 2.2);
+        frame(ctx, L, h, k, list.length, m, v, v.currentTime, cam, "replay");
       });
       if (stopRef.current) break;
       // hold on contact
@@ -448,8 +473,8 @@ async function run(canvas, F, list, m, stopRef, onStep, drawn = false, people = 
       await new Promise((done) => {
         const tick = () => {
           cam.t = (performance.now() - t0) / 1000;
-          toward(1 / 60, F.zoom * 2.3, smasher(last.t, who, .4), 3.2, 3);
-          frame(ctx, F, h, k, list.length, m, v, v.currentTime, cam, "impact");
+          toward(1 / 60, L.zoom * 2.3, smasher(last.t, who, .4), 3.2, 3);
+          frame(ctx, L, h, k, list.length, m, v, v.currentTime, cam, "impact");
           cam.t < .8 && !stopRef.current ? requestAnimationFrame(tick) : done();
         };
         tick();
@@ -459,16 +484,188 @@ async function run(canvas, F, list, m, stopRef, onStep, drawn = false, people = 
       await playUntil(v, Math.min(v.duration - .05, last.t + .9), stopRef, (dt) => {
         const u = Math.min(1, (v.currentTime - last.t) / .9);
         cam.u = 1 - .6 * u;
-        toward(dt, F.zoom * (2.2 - .8 * u), lerp(smasher(v.currentTime, who), px(spot), u * .6), 2, 1.4);
-        frame(ctx, F, h, k, list.length, m, v, v.currentTime, cam, "replay");
+        toward(dt, L.zoom * (2.2 - .8 * u), lerp(smasher(v.currentTime, who), px(spot), u * .6), 2, 1.4);
+        frame(ctx, L, h, k, list.length, m, v, v.currentTime, cam, "replay");
       });
       v.pause();
       cam.u = 1;
     }
     // 3 winner freeze-frame
-    frame(ctx, F, h, k, list.length, m, v, 1e9, cam, "winner");
+    frame(ctx, L, h, k, list.length, m, v, 1e9, cam, "winner");
     await wait(stopRef.current ? 0 : 1100);
   }
+}
+
+// ---- your own video: the reel of your smash ----------------------------------------------------------------------
+// The clip you filmed goes to your own GPU server once (video/pose/reel.py): DETR finds you, Sapiens2 reads your
+// pose, SAM 2.1 cuts you out, and your fastest overhead swing is the smash. The reel is your footage on top and
+// Serve's view of you under it: your outline lit up, your skeleton, and the path of your racket hand.
+const ME = "#6FB6FF", THEM = "#FF8A6B";
+const OWN = {
+  vertical: { ...FORMATS.vertical, vid: { x: 0, y: 170, w: 720, h: 560 }, ai: { x: 0, y: 742, w: 720, h: 370 } },
+  wide: { ...FORMATS.wide, ai: FORMATS.wide.split.ai },
+};
+const bodyH = (p) => { const k = p.k, f = [15, 16, 19, 20].map((i) => k[i]).filter(seen); return seen(k[0]) && f.length ? Math.max(...f.map((q) => q[1])) - k[0][1] : 0; };
+// the racket head: past your higher wrist along the forearm, about a third of your height
+function tipOf(p) {
+  const w = [9, 10].filter((i) => seen(p.k[i])).sort((a, b) => p.k[a][1] - p.k[b][1])[0];
+  if (w == null) return null;
+  const W = p.k[w], E = p.k[w - 2], reach = .3 * (bodyH(p) || 120);
+  if (!seen(E)) return [W[0], W[1]];
+  const d = Math.hypot(W[0] - E[0], W[1] - E[1]) || 1;
+  return [W[0] + ((W[0] - E[0]) / d) * reach, W[1] + ((W[1] - E[1]) / d) * reach];
+}
+
+function aiOwn(ctx, a, d, t, cam, phase) {
+  const { P, k } = cropOf(a, cam, d), f = peopleAt(d, t), lit = phase !== "live";
+  ctx.save(); ctx.beginPath(); ctx.rect(a.x, a.y, a.w, a.h); ctx.clip();
+  const bg = ctx.createLinearGradient(0, a.y, 0, a.y + a.h); bg.addColorStop(0, "#04080A"); bg.addColorStop(1, "#0C1D17");
+  ctx.fillStyle = bg; ctx.fillRect(a.x, a.y, a.w, a.h);
+  // your racket hand over the last half second, fading behind it
+  const trail = [];
+  for (let j = 0; j <= 15; j++) { const g = peopleAt(d, t - j / 30)?.[0], tip = g && tipOf(g); if (tip) trail.push(P(tip)); }
+  ctx.lineCap = "round";
+  for (let j = 1; j < trail.length; j++) { ctx.globalAlpha = .85 * (1 - j / trail.length); ctx.strokeStyle = "#F2E6C9"; ctx.lineWidth = Math.max(1.5, 3.2 * k * (1 - j / (trail.length + 2))); ctx.beginPath(); ctx.moveTo(...trail[j - 1]); ctx.lineTo(...trail[j]); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  for (const side of [1, 0]) {
+    const p = f?.[side];
+    if (!p) continue;
+    const me = side === 0, col = me ? ME : THEM, lw = Math.max(1.2, k * (me ? 1.3 : .9));
+    const feet = [15, 16, 19, 20].map((i) => p.k[i]).filter(seen);
+    if (feet.length) { const [x, y] = P([feet.reduce((s, q) => s + q[0], 0) / feet.length, Math.max(...feet.map((q) => q[1]))]); ctx.fillStyle = "#00000088"; ctx.beginPath(); ctx.ellipse(x, y, 20 * lw, 5 * lw, 0, 0, 7); ctx.fill(); }
+    ctx.save(); ctx.globalAlpha = me ? 1 : .45;
+    if (p.m) {
+      outlinePath(ctx, p.m, P);
+      if (me) { ctx.shadowColor = col; ctx.shadowBlur = lit ? 34 : 18; }
+      ctx.fillStyle = col + (me ? "F0" : "B0"); ctx.fill();
+      ctx.shadowBlur = 0; ctx.strokeStyle = me ? "#ffffff" : col; ctx.lineWidth = me ? 2 : 1; ctx.stroke();
+      skeleton(ctx, p, P, lw, me && phase === "impact" ? "#ffffff" : "#04070A88");
+    } else skeleton(ctx, p, P, lw * 3, col);
+    ctx.restore();
+  }
+  ctx.restore();
+  tag(ctx, a, F_NOTE(a));
+}
+const F_NOTE = (a) => (a.w < 500 ? "How Serve sees you" : "How Serve sees you · DETR, Sapiens2, SAM 2.1");
+
+function frameOwn(ctx, F, d, video, t, cam, phase) {
+  const { W, H, vid } = F, crop = cropOf(vid, cam, d), f = peopleAt(d, t), me = f?.[0], lit = phase === "replay" || phase === "impact";
+  ctx.canvas.dataset.phase = phase;
+  ctx.fillStyle = "#04070A"; ctx.fillRect(0, 0, W, H);
+  if (video.videoWidth) {
+    const kx = video.videoWidth / d.w, ky = video.videoHeight / d.h;
+    ctx.drawImage(video, crop.sx * kx, crop.sy * ky, crop.cw * kx, crop.ch * ky, vid.x, vid.y, vid.w, vid.h);
+  }
+  if (lit && me?.m) { ctx.save(); ctx.beginPath(); ctx.rect(vid.x, vid.y, vid.w, vid.h); ctx.clip(); spotlight(ctx, vid, me, crop.P, ME, phase === "impact" ? 1 : cam.u ?? 1); ctx.restore(); }
+  if (phase === "impact" && me) skeleton(ctx, me, crop.P, Math.max(1.5, crop.k * .9));
+  if (lit) {
+    const bar = vid.h * .07;
+    ctx.fillStyle = "#000"; ctx.fillRect(vid.x, vid.y, vid.w, bar); ctx.fillRect(vid.x, vid.y + vid.h - bar, vid.w, bar);
+    const by = vid.y + bar + (F.kind === "wide" ? 100 : 16), badge = phase === "impact" ? "● CONTACT" : "▶ SMASH · SLOW-MO";
+    ctx.font = "800 24px Consolas, monospace"; ctx.fillStyle = "#D6332A"; ctx.beginPath(); ctx.roundRect(vid.x + 24, by, ctx.measureText(badge).width + 28, 46, 8); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.fillText(badge, vid.x + 38, by + 31);
+    if (phase === "impact") {
+      ctx.fillStyle = `rgba(255,255,255,${Math.max(0, .35 - (cam.t || 0) * .9)})`; ctx.fillRect(vid.x, vid.y, vid.w, vid.h);
+      const tip = me && tipOf(me);
+      if (tip) {
+        const [x, y] = crop.P(tip);
+        ctx.save(); ctx.beginPath(); ctx.rect(vid.x, vid.y, vid.w, vid.h); ctx.clip();
+        ctx.strokeStyle = "#F2E6C9"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, (14 + 50 * (cam.t || 0)) * crop.k, 0, 7); ctx.stroke();
+        ctx.restore();
+      }
+    }
+  }
+  if (phase === "winner") {
+    ctx.fillStyle = "#04070A88"; ctx.fillRect(vid.x, vid.y, vid.w, vid.h);
+    ctx.save(); ctx.translate(vid.x + vid.w / 2, vid.y + vid.h / 2); ctx.rotate(-0.08);
+    ctx.strokeStyle = "#F2E6C9"; ctx.lineWidth = 6; ctx.strokeRect(-230, -70, 460, 140);
+    ctx.fillStyle = "#F2E6C9"; ctx.textAlign = "center"; ctx.font = "900 64px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(d.smash != null ? "SMASH!" : "RALLY!", 0, 6);
+    ctx.font = "700 26px Consolas, monospace"; ctx.fillText("MY GAME · SERVE", 0, 48);
+    ctx.restore();
+  }
+  if (F.ai) {
+    const a = F.ai, wide = F.kind === "wide";
+    if (wide) { ctx.fillStyle = "#04070A"; ctx.beginPath(); ctx.roundRect(a.x - 5, a.y - 5, a.w + 10, a.h + 10, 12); ctx.fill(); }
+    aiOwn(ctx, a, d, t, cam, phase);
+    if (wide) { ctx.strokeStyle = "#ffffffcc"; ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(a.x, a.y, a.w, a.h, 8); ctx.stroke(); }
+  }
+  const when = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  if (F.kind === "vertical") {
+    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 22px Consolas, monospace"; ctx.fillText("SERVE · MY SMASH", 40, 62);
+    ctx.fillStyle = "#EEF1F2"; ctx.font = "700 40px Segoe UI, sans-serif"; ctx.fillText("Me, in slow motion", 40, 120);
+    ctx.fillStyle = "#8A979E"; ctx.font = "400 22px Segoe UI, sans-serif"; ctx.fillText(`My own video · ${when}`, 40, 152);
+    const y0 = F.ai.y + F.ai.h + 58;
+    ctx.fillStyle = "#F2E6C9"; ctx.font = "800 44px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(d.smash != null ? "My smash" : "My rally", 40, y0);
+    ctx.fillStyle = "#8A979E"; ctx.font = "600 20px Consolas, monospace"; ctx.textAlign = "right"; ctx.fillText(phase === "live" ? "REAL SPEED" : "QUARTER SPEED", W - 40, y0); ctx.textAlign = "left";
+    ctx.fillStyle = "#5FD39A"; ctx.font = "500 18px Consolas, monospace"; ctx.fillText("● read on my own GPU · DETR, Sapiens2, SAM 2.1", 40, H - 30);
+  } else {
+    const g = ctx.createLinearGradient(0, 0, 0, 140); g.addColorStop(0, "#04070ACC"); g.addColorStop(1, "#04070A00");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, 140);
+    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 20px Consolas, monospace"; ctx.fillText("SERVE · MY SMASH", 32, 44);
+    ctx.fillStyle = "#EEF1F2"; ctx.font = "800 40px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(`Me, in slow motion · ${when}`, 32, 92);
+  }
+}
+
+function cardOwn(ctx, F) {
+  const { W, H } = F;
+  ctx.fillStyle = "#04070A"; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#F2E6C9"; ctx.font = "600 24px Consolas, monospace"; ctx.fillText("MY OWN VIDEO", 60, H / 2 - 70);
+  ctx.fillStyle = "#EEF1F2"; ctx.font = "800 64px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText("My smash", 60, H / 2);
+  ctx.fillStyle = "#8A979E"; ctx.font = "400 28px Segoe UI, sans-serif"; ctx.fillText("Read by Sapiens2 and SAM 2.1", 60, H / 2 + 54);
+}
+
+async function runOwn(canvas, F, own, stopRef, onStep) {
+  const ctx = canvas.getContext("2d"), d = own.data, L = F.kind === "vertical" ? OWN.vertical : OWN.wide;
+  onStep(0);
+  cardOwn(ctx, L);
+  const v = document.createElement("video");
+  v.muted = true; v.playsInline = true; v.src = own.url;
+  await Promise.all([new Promise((ok) => { v.oncanplay = ok; v.onerror = ok; }), wait(900)]);
+  if (!v.videoWidth || stopRef.current) return;
+  const seek = (x) => new Promise((ok) => { v.onseeked = ok; v.currentTime = x; });
+  const cam = { x: d.w / 2, y: d.h / 2, z: 1 };
+  const toward = (dt, zGoal, [tx, ty], rate = 2.4, zRate = 1.6) => {
+    const a = 1 - Math.exp(-dt * rate);
+    cam.x += (tx - cam.x) * a; cam.y += (ty - cam.y) * a; cam.z += (zGoal - cam.z) * (1 - Math.exp(-dt * zRate));
+  };
+  // the camera follows you; in the replay it aims part of the way up to your racket, so the contact stays in view
+  const me = (t, reach = 0) => { const p = peopleAt(d, t)?.[0], c = p && centre(p); if (!c) return [cam.x, cam.y]; const tip = reach && tipOf(p); return tip ? lerp(c, tip, reach) : c; };
+  const s = d.smash, end = (v.duration || d.n / d.fps) - .05;
+  const z = L.zoom * 1.25;
+  // 1 the rally around the smash, at real speed
+  await seek(s != null ? Math.max(0, s - 3) : 0);
+  { const [x, y] = me(v.currentTime); cam.x = x; cam.y = y; cam.z = z; }
+  await v.play().catch(() => {});
+  await playUntil(v, s != null ? Math.min(end, s + 1.2) : end, stopRef, (dt) => { toward(dt, z, me(v.currentTime)); frameOwn(ctx, L, d, v, v.currentTime, cam, "live"); });
+  if (s != null && !stopRef.current) {
+    // 2 the replay: into slow motion, pushing in on you; hold on contact; ease out
+    const from = Math.max(0, s - 1.4);
+    v.pause(); await seek(from);
+    v.playbackRate = .6; await v.play().catch(() => {});
+    await playUntil(v, s, stopRef, (dt) => {
+      const u = Math.min(1, (v.currentTime - from) / Math.max(.2, s - from));
+      v.playbackRate = Math.max(.25, .6 - .35 * u); cam.u = u;
+      toward(dt, z * (1 + 1.1 * u), me(v.currentTime, .4 * u), 3.2, 2.2);
+      frameOwn(ctx, L, d, v, v.currentTime, cam, "replay");
+    });
+    if (!stopRef.current) {
+      v.pause();
+      const t0 = performance.now();
+      await new Promise((done) => {
+        const tick = () => { cam.t = (performance.now() - t0) / 1000; toward(1 / 60, z * 2.2, me(s, .4), 3.2, 3); frameOwn(ctx, L, d, v, v.currentTime, cam, "impact"); cam.t < .8 && !stopRef.current ? requestAnimationFrame(tick) : done(); };
+        tick();
+      });
+      cam.t = 0; v.playbackRate = .3; await v.play().catch(() => {});
+      await playUntil(v, Math.min(end, s + .8), stopRef, (dt) => {
+        const u = Math.min(1, (v.currentTime - s) / .8);
+        cam.u = 1 - .6 * u; toward(dt, z * (2.1 - .8 * u), me(v.currentTime), 2, 1.4);
+        frameOwn(ctx, L, d, v, v.currentTime, cam, "replay");
+      });
+      v.pause(); cam.u = 1;
+    }
+  }
+  frameOwn(ctx, L, d, v, v.currentTime, cam, "winner");
+  await wait(stopRef.current ? 0 : 1400);
 }
 
 const TYPES = ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm"];
@@ -477,8 +674,23 @@ export default function Highlights({ m, p }) {
   const all = useMemo(() => pickHighlights(m, p, 8), [m, p]);
   const [off, setOff] = useState(() => new Set());
   const [fmt, setFmt] = useState("vertical");
-  const [src, setSrc] = useState("drawn"); // drawn from tracking (no footage) | footage
+  // footage: you, as you will post it, with Serve's view of each moment under it | drawn: no footage at all
+  const [src, setSrc] = useState(() => { try { return localStorage.getItem("shuttlecoach.reel.src") || "footage"; } catch { return "footage"; } });
+  const pickSrc = (k) => { setSrc(k); setFile(null); try { localStorage.setItem("shuttlecoach.reel.src", k); } catch { /* kept for this visit only */ } };
   const [cap2, setCap2] = useState(null); // { text, by } from Muse Glimmer
+  // your own video: { file, url, state: reading | ready | failed, steps, working, error, data }
+  const [own, setOwn] = useState(null);
+  const pick = async (f) => {
+    if (!f) return;
+    if (own?.url) URL.revokeObjectURL(own.url);
+    const o = { file: f, url: URL.createObjectURL(f), state: "reading", steps: [], working: "Sending your video to your own server" };
+    setOwn(o); setFile(null); setCap2(null); setMsg("");
+    try {
+      const data = await agentReel(f, (e) => setOwn((x) => x && x.url === o.url ? (e.type === "step" ? { ...x, steps: [...x.steps, e] } : { ...x, working: e.step }) : x));
+      setOwn((x) => x && x.url === o.url ? { ...x, state: "ready", working: null, data } : x);
+    } catch (e) { setOwn((x) => x && x.url === o.url ? { ...x, state: "failed", working: null, error: e.message } : x); }
+  };
+  const mine = own?.state === "ready" ? own : null;
   // the reel: the five best rallies still ticked, in match order
   const list = useMemo(() => all.filter((h) => !off.has(h.r.i)).sort((a, b) => b.score - a.score).slice(0, 5).sort((a, b) => a.r.i - b.r.i), [all, off]);
   const canvas = useRef(null), stop = useRef(false);
@@ -487,12 +699,13 @@ export default function Highlights({ m, p }) {
   const [file, setFile] = useState(null); // { url, blob, ext }
   const [msg, setMsg] = useState("");
   const F = FORMATS[fmt];
-  const rule = `${m.names[p]}: top ${list.length} from ${m.event}. ${list.map((h) => cap(h.why.join(", "))).join(" · ")}. Analysed on-device with ShuttleCoach. #badminton #ShuttleCoach`;
+  const rule = mine ? "My smash, slowed right down: Serve found me, read my pose and cut me out of the video. #badminton #smash #ServeApp"
+    : `${m.names[p]}: top ${list.length} from ${m.event}. ${list.map((h) => cap(h.why.join(", "))).join(" · ")}. Analysed on-device with Serve. #badminton #ServeApp`;
   const caption = cap2?.text || rule;
   const [writing, setWriting] = useState(false);
   const write = async () => {
     setWriting(true);
-    try { setCap2(await agentCaption({ player: m.names[p], event: m.event, picks: list.map((h) => ({ why: h.why, set: h.r.set, score: h.r.score, shots: h.r.shots.length, last: h.r.lastType })) })); }
+    try { setCap2(await agentCaption(mine ? { player: "Me", own: { what: mine.data.smash != null ? "my smash, replayed in slow motion" : "a rally from my game" } } : { player: m.names[p], event: m.event, picks: list.map((h) => ({ why: h.why, set: h.r.set, score: h.r.score, shots: h.r.shots.length, last: h.r.lastType })) })); }
     catch { setCap2(null); setMsg("Muse Glimmer could not be reached; the caption below is the template."); }
     setWriting(false);
   };
@@ -502,7 +715,11 @@ export default function Highlights({ m, p }) {
   // asked for from the agent (#/match?tab=reel&auto=1): cut the reel and write the caption straight away
   const auto = useRef(false);
   useEffect(() => { if (!auto.current && list.length && /[?&]auto=1/.test(location.hash)) { auto.current = true; go(true); } }, [list]);
-  useEffect(() => { if (list.length && canvas.current && state === "idle" && !file) card(canvas.current.getContext("2d"), F, list[0], 0, list.length, m.names); }, [list, fmt, state, file, m.names]);
+  useEffect(() => {
+    if (!canvas.current || state !== "idle" || file) return;
+    if (mine) cardOwn(canvas.current.getContext("2d"), F);
+    else if (list.length) card(canvas.current.getContext("2d"), F, list[0], 0, list.length, m.names);
+  }, [list, fmt, state, file, m.names, mine]);
 
   const go = async (record) => {
     stop.current = false; setFile(null); setMsg(""); setState(record ? "recording" : "preview");
@@ -515,7 +732,8 @@ export default function Highlights({ m, p }) {
       rec.start(500);
     }
     if (record && !cap2) write();
-    await run(canvas.current, F, list, m, stop, setStep, src === "drawn", await loadPeople());
+    if (mine) await runOwn(canvas.current, F, mine, stop, setStep);
+    else await run(canvas.current, F, list, m, stop, setStep, src === "drawn", await loadPeople());
     if (rec) {
       await new Promise((ok) => { rec.onstop = ok; rec.stop(); });
       if (!stop.current) {
@@ -526,11 +744,11 @@ export default function Highlights({ m, p }) {
     setState("idle");
   };
 
-  const name = `shuttlecoach_top${list.length}_${m.names[p].split(" ")[0].toLowerCase()}_${fmt === "vertical" ? "9x16" : "16x9"}`;
+  const name = mine ? `serve_my_smash_${fmt === "vertical" ? "9x16" : "16x9"}` : `serve_top${list.length}_${m.names[p].split(" ")[0].toLowerCase()}_${fmt === "vertical" ? "9x16" : "16x9"}`;
   const share = async () => {
     const f = new File([file.blob], `${name}.${file.ext}`, { type: file.blob.type });
     if (navigator.canShare?.({ files: [f] })) {
-      try { await navigator.share({ files: [f], title: "ShuttleCoach highlights", text: caption }); setMsg("Shared."); } catch { setMsg("Sharing cancelled."); }
+      try { await navigator.share({ files: [f], title: "Serve highlights", text: caption }); setMsg("Shared."); } catch { setMsg("Sharing cancelled."); }
     } else setMsg("This browser cannot share files directly: download the video and post it with the caption.");
   };
   // Instagram and Facebook: the phone's share sheet takes the video straight to the app; on a computer the reel is
@@ -538,7 +756,7 @@ export default function Highlights({ m, p }) {
   const shareTo = async (app) => {
     const f = new File([file.blob], `${name}.${file.ext}`, { type: file.blob.type });
     if (navigator.canShare?.({ files: [f] })) {
-      try { await navigator.share({ files: [f], title: "ShuttleCoach highlights", text: caption }); setMsg(`Shared. Pick ${app === "instagram" ? "Instagram" : "Facebook"} in the share sheet if it did not open.`); } catch { setMsg("Sharing cancelled."); }
+      try { await navigator.share({ files: [f], title: "Serve highlights", text: caption }); setMsg(`Shared. Pick ${app === "instagram" ? "Instagram" : "Facebook"} in the share sheet if it did not open.`); } catch { setMsg("Sharing cancelled."); }
       return;
     }
     const a = document.createElement("a"); a.href = file.url; a.download = `${name}.${file.ext}`; a.click();
@@ -551,6 +769,22 @@ export default function Highlights({ m, p }) {
   return (
     <section className={`hl-grid ${fmt}`}>
       <div className="panel">
+        <div className={`own-card ${own ? own.state : ""}`}>
+          <div className="own-h"><b>{mine ? "Your smash, from your own video" : "Use your own video"}</b>
+            {own && state === "idle" && <button className="link" onClick={() => { URL.revokeObjectURL(own.url); setOwn(null); setFile(null); setCap2(null); }}>{mine ? "Back to the match highlights" : "Cancel"}</button>}</div>
+          {!own && <p className="tiny muted">Film a rally on your phone. Your agent finds you with Meta's DETR, reads your pose with Sapiens2 and cuts you out with SAM 2.1, on your own GPU server, then replays your smash in slow motion. The video goes nowhere else.</p>}
+          {!own && <label className="btn primary sm own-pick"><input type="file" accept="video/*" onChange={(e) => pick(e.target.files?.[0])} />Choose a video</label>}
+          {own && (
+            <ol className="own-steps">
+              {own.steps.map((x, i) => <li key={i}><Icon name="check" size={16} /><span><b>{x.step}</b><em>{x.detail}</em></span></li>)}
+              {own.working && <li className="working"><span className="dots" aria-hidden="true"><i /><i /><i /></span><span><b>{own.working}</b></span></li>}
+              {own.state === "failed" && <li className="failed"><span><b>Could not make the reel</b><em>{own.error}</em></span></li>}
+            </ol>
+          )}
+          {mine && <p className="tiny muted">{mine.data.smash != null ? `Your smash at ${mine.data.smash.toFixed(1)} s: your fastest overhead swing.` : "No overhead swing found, so the reel shows the rally."} Preview it or create the video, then post it.</p>}
+          {own?.state === "failed" && <label className="btn ghost sm own-pick"><input type="file" accept="video/*" onChange={(e) => pick(e.target.files?.[0])} />Try another video</label>}
+        </div>
+        {!mine && <>
         <h3 className="panel-h">Auto-picked highlights for {m.names[p]}</h3>
         <p className="tiny muted">Scored from the labels: outright winners, rally length, smash finishes and pressure points (18+). Untick a rally to swap in the next best; the reel uses the top five.</p>
         <ol className="hl-list">
@@ -565,19 +799,20 @@ export default function Highlights({ m, p }) {
           })}
         </ol>
         <div className="seg" role="radiogroup" aria-label="Picture">
-          {[["drawn", "Drawn from tracking"], ["footage", "Match footage"]].map(([k, l]) => <button key={k} role="radio" aria-checked={src === k} disabled={state !== "idle"} onClick={() => { setSrc(k); setFile(null); }}>{l}</button>)}
+          {[["footage", "Footage + how it's made"], ["drawn", "Drawn only, no footage"]].map(([k, l]) => <button key={k} role="radio" aria-checked={src === k} disabled={state !== "idle"} onClick={() => pickSrc(k)}>{l}</button>)}
         </div>
+        </>}
         <div className="seg" role="radiogroup" aria-label="Format">
           {Object.entries(FORMATS).map(([k, f]) => <button key={k} role="radio" aria-checked={fmt === k} disabled={state !== "idle"} onClick={() => { setFmt(k); setFile(null); }}>{f.label}</button>)}
         </div>
-        <p className="tiny muted">Camera: follows the shuttle between hitter and receiver. The replay goes back to the smash, ramps down to quarter speed and pushes in tight on the smasher, holds on contact, then eases out to where it lands and freezes on the winner. Meta's Sapiens2 reads both players' pose and SAM 2.1 cuts them out, so the drawn reel shows the broadcast angle without a frame of footage, and the footage reel spotlights the smasher. {F.note}.</p>
+        <p className="tiny muted">Camera: follows the shuttle between hitter and receiver. The replay goes back to the smash, ramps down to quarter speed and pushes in tight on the smasher, holds on contact, then eases out to where it lands and freezes on the winner. {src === "footage" ? "Your footage is the picture, with the smasher in a spotlight; under it, Serve's view of the same moment: Sapiens2 reads each player's pose and SAM 2.1 cuts them out." : "Nothing of the footage is used: the players are drawn as their SAM 2.1 outlines with their Sapiens2 skeletons, at the camera's angle."} {F.note}.</p>
         <div className="hl-actions hl-sticky">
           {state === "idle" ? <>
             <button className="btn ghost" onClick={() => go(false)}>Preview reel</button>
             <button className="btn primary" onClick={() => go(true)}>Create video</button>
           </> : <button className="btn ghost" onClick={() => { stop.current = true; }}>{state === "recording" ? "Cancel" : "Stop"}</button>}
         </div>
-        {state === "recording" && <p className="tiny muted">Recording highlight {step + 1} of {list.length}. The video is rendered in this browser and never uploaded.</p>}
+        {state === "recording" && <p className="tiny muted">{mine ? "Recording your smash." : `Recording highlight ${step + 1} of ${list.length}.`} The video is rendered in this browser.</p>}
         {file && (
           <div className="hl-done">
             <b>Your reel is ready · {(file.blob.size / 1e6).toFixed(1)} MB · .{file.ext}</b>
@@ -588,12 +823,12 @@ export default function Highlights({ m, p }) {
               <a className="btn ghost" href={file.url} download={`${name}.${file.ext}`}>Download</a>
               <button className="btn ghost" onClick={copy}>Copy caption</button>
               <button className="btn ghost" onClick={() => setMsg(clubShares().highlights
-                ? (postToClub({ kind: "highlight", coach: "analyst", text: `Shared a highlight reel: top ${list.length} from ${m.event}.`, reply: "Great rallies. Watch how the last shot of each one sets up the winner." }) ? "Shared with the club feed." : "Could not save to the club feed.")
+                ? (postToClub(mine ? { kind: "highlight", coach: "technique", text: "Shared my smash, in slow motion.", reply: "Good extension at contact. Next, watch where your racket hand finishes." } : { kind: "highlight", coach: "analyst", text: `Shared a highlight reel: top ${list.length} from ${m.event}.`, reply: "Great rallies. Watch how the last shot of each one sets up the winner." }) ? "Shared with the club feed." : "Could not save to the club feed.")
                 : "Highlights are not shared with your club yet. Turn them on under “What the club sees” on the Club page.")}>Share with the club</button>
               <a className="chip" href={shareLinks(caption).whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
               <a className="chip" href={shareLinks(caption).threads} target="_blank" rel="noopener noreferrer">Threads</a>
             </div>
-            <p className="tiny muted hl-cap-by">{writing ? "Muse Glimmer is writing the caption…" : cap2?.by === "model" ? "Caption written by Muse Glimmer · every number checked against the rallies" : "Caption from the template"}{!writing && <> · <button className="link" onClick={write}>Write another</button></>}</p>
+            <p className="tiny muted hl-cap-by">{writing ? "Muse Glimmer is writing the caption…" : cap2?.by === "model" ? `Caption written by Muse Glimmer · every number checked${mine ? "" : " against the rallies"}` : "Caption from the template"}{!writing && <> · <button className="link" onClick={write}>Write another</button></>}</p>
             <textarea readOnly value={caption} rows={4} aria-label="Suggested caption" />
             {msg && <p className="tiny muted">{msg}</p>}
             <p className="tiny muted">Sharing only happens when you pick an app; until then the video exists only on this device.</p>
@@ -603,6 +838,9 @@ export default function Highlights({ m, p }) {
       <div className="hl-view">
         {file && <video src={file.url} controls playsInline className="hl-canvas" />}
         <canvas ref={canvas} width={F.W} height={F.H} className="hl-canvas" hidden={!!file} aria-label="Highlight reel preview" />
+        <p className="tiny muted hl-how">{mine ? <>On top, you, as you will post it. Under it, how Serve sees you: Meta's <b>DETR</b> finds you, <b>Sapiens2</b> reads your pose and <b>SAM 2.1</b> cuts you out; the light line is your racket hand.</> : src === "footage"
+          ? <>On top, your rally as you will post it. Under it, how Serve sees it: YOLO finds the players, <b>Sapiens2</b> reads their pose and <b>SAM 2.1</b> cuts them out.</>
+          : <>Drawn from the players' <b>Sapiens2</b> pose and <b>SAM 2.1</b> outlines: not a frame of footage is in the reel.</>}</p>
       </div>
     </section>
   );

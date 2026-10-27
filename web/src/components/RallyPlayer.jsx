@@ -132,7 +132,7 @@ export default function RallyPlayer({ rally, src, onFrame, seekRef, overlay = tr
         const i = Math.min(rally.n - 1, Math.floor(v.currentTime * rally.fps));
         ctx.drawImage(v, 0, 0, c.width, c.height);
         drawLayers(ctx, rally, poseRef.current, names, i, 1, 0, 0, onRef.current);
-        ctx.fillStyle = "#5FD39A"; ctx.font = "600 16px Consolas, monospace"; ctx.fillText("SHUTTLECOACH · analysed on-device", 18, 28);
+        ctx.fillStyle = "#5FD39A"; ctx.font = "600 16px Consolas, monospace"; ctx.fillText("SERVE · analysed on-device", 18, 28);
         setExp({ p: v.currentTime / v.duration });
         v.ended ? done() : requestAnimationFrame(tick);
       };
@@ -164,7 +164,7 @@ export default function RallyPlayer({ rally, src, onFrame, seekRef, overlay = tr
             <label key={k} className={on[k] ? "on" : ""}><input type="checkbox" checked={on[k]} onChange={() => setOn({ ...on, [k]: !on[k] })} />{l}</label>
           ))}
           <span className="sp" />
-          {exp?.url ? <a className="btn primary sm" href={exp.url} download="shuttlecoach_annotated_rally.webm">Download annotated video</a>
+          {exp?.url ? <a className="btn primary sm" href={exp.url} download="serve_annotated_rally.webm">Download annotated video</a>
             : exp ? <span className="mono small">Exporting {Math.round(exp.p * 100)}%</span>
             : <button className="btn ghost sm" onClick={exportClip}>Export annotated video</button>}
         </div>

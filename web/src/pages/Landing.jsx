@@ -22,8 +22,8 @@ export default function Landing({ data }) {
         <Court3D rally={rally} loop={!still} frame={rally ? rally.n - 1 : 0} autoRotate={!still} variant="hero" className="hero-court" />
         <div className="hero-shade" aria-hidden="true" />
         <div className="hero-copy">
-          <p className="eyebrow">Private badminton intelligence</p>
-          <h1 className="display">Shuttle<br />Coach</h1>
+          <p className="eyebrow">Play more. Manage less.</p>
+          <h1 className="display">Serve</h1>
           <p className="lead">One camera in. A coaching staff out. Every frame, every 3D flight and every word of advice is computed on hardware you own.</p>
           <div className="cta-row">
             <button className="btn primary" onClick={() => go("analyze")}>Analyze a match</button>
@@ -71,7 +71,7 @@ export default function Landing({ data }) {
 
       <section className="band split play-band">
         <header className="sec-head"><h2>Want to play? Say it, and the agent books it.</h2>
-          <p className="muted">Booking a court and lining up a time with friends is why most games never happen. Tell ShuttleCoach "doubles on Thursday evening" or "someone who plays like my next opponent". Muse Glimmer reads it; the agent finds a free court and club members who are free and fit your game, writes the invites, and follows up until the game is on. Nothing is booked until you say yes.</p>
+          <p className="muted">Booking a court and lining up a time with friends is why most games never happen. Tell Serve "doubles on Thursday evening" or "someone who plays like my next opponent". Muse Glimmer reads it; the agent finds a free court and club members who are free and fit your game, writes the invites, and follows up until the game is on. Nothing is booked until you say yes.</p>
           <div className="cta-row"><button className="btn primary" onClick={() => go("play")}>Find a game</button><button className="btn ghost" onClick={() => go("club")}>See the club</button></div></header>
         <ol className="steps play-steps">
           {[["Say it", "Doubles on Thursday evening, with Hana."], ["Court and people", "A free court, and members who are free, at your level, who attack the zone you need to defend."], ["You confirm", "Court held, invites sent; if someone can't make it, the next best player is asked."], ["Game on", "Calendar, the group chat, a warm-up from Coach Ren, and XP in the club league."]].map(([h, b], i) => (
@@ -95,7 +95,7 @@ export default function Landing({ data }) {
       </section>
 
       <footer className="foot">
-        <span>ShuttleCoach · Meta Global AI Developer Hackathon 2026 · coaches run on Muse Glimmer, Meta's open-weights model, on your own GPU</span>
+        <span>Serve · Meta Global AI Developer Hackathon 2026 · coaches run on Muse Glimmer, Meta's open-weights model, on your own GPU</span>
         <span className="muted">Prototype: coach briefings are generated from the precomputed match data; coach chat runs live on Muse Glimmer.</span>
       </footer>
     </div>

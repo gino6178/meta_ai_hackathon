@@ -15,7 +15,7 @@ os.makedirs(out, exist_ok=True)
 k = Kokoro(os.path.join(models, "kokoro-v1.0.onnx"), os.path.join(models, "voices-v1.0.bin"))
 
 # how words are said; the subtitles keep the written form
-SAY = [("ShuttleCoach", "Shuttle Coach"), ("3D", "three D"), ("Muse Glimmer", "Muse Glimmer"), ("NT$", "N T dollars"),
+SAY = [("3D", "three D"), ("Muse Glimmer", "Muse Glimmer"), ("NT$", "N T dollars"),
        ("Sapiens2", "Sapiens two"), ("SAM 2.1", "Sam two point one")]
 GAP = {".": 0.34, "!": 0.34, "?": 0.34, ":": 0.24, ";": 0.24}
 

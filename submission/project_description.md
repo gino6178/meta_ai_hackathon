@@ -1,13 +1,15 @@
-# ShuttleCoach: submission text
+# Serve: submission text
 
 Draft text for the Cerebral Valley submission form. Before submitting, check that the "Meta AI tooling" section
 matches what is wired in on the day, because the judges will try the demo.
 
 ## Name
 
-ShuttleCoach
+Serve
 
 ## One line
+
+**Play more. Manage less.**
 
 A team of Muse Glimmer agents, laid out like a social app. Say you want to play, and your agent finds the time, the
 court in the middle and the people. Five coach agents turn your match into quests and a weekly plan. All of it runs on
@@ -154,10 +156,12 @@ Ask your agent for a reel ("make my highlight reel for Instagram") and it cuts o
    feet and hands), and **SAM 2.1** cuts each one out of the frame.
 3. **Replays the smash in slow motion.** The replay goes back to the player's smash. It ramps down to quarter speed
    while the camera pushes in on the smasher, holds on contact with a flash, then follows the shuttle to the floor.
-4. **Needs no footage.** By default the reel is drawn from the data: the broadcast angle through the court
-   homography, the players as their SAM 2.1 outlines with their Sapiens2 skeletons, and the shuttle from racket to
-   racket. With footage, the replay dims the frame and spotlights the smasher's outline.
-5. **Posts it.** Muse Glimmer writes the caption, and every number in it is checked against the rallies. On a phone,
+4. **Shows you, and how it is made.** What you post is you: your footage on top, the smasher in a spotlight, and
+   under it Serve's view of the same moment: the players as their SAM 2.1 outlines with their Sapiens2
+   skeletons, and the shuttle from racket to racket. A drawn-only reel, with no footage at all, is one tap away.
+5. **Works on your own video.** Film a rally on your phone and pick it. On your own GPU server, Meta's DETR finds
+   you, Sapiens2 reads your pose and SAM 2.1 cuts you out, and your fastest overhead swing is taken as your smash.
+6. **Posts it.** Muse Glimmer writes the caption, and every number in it is checked against the rallies. On a phone,
    the share sheet sends the video straight to Instagram or Facebook. On a computer, the reel is saved, the caption
    copied and the site opened.
 
@@ -167,7 +171,17 @@ Ask your agent for a reel ("make my highlight reel for Instagram") and it cuts o
   - Every logged quest takes health off the boss.
   - Streaks count recovery days.
   - Badges include "Iron knee", for keeping every health limit.
-- **League.** It ranks effort and improvement, never talent.
+- **Leaderboard.** A club rating (Elo) that every reported challenge moves, with boards for rating, wins, effort
+  and improvement.
+- **Best match, agreed agent to agent.** Your agent ranks every member for a game this week: a fair game by rating,
+  a shared free time, the trip to the venue in the middle, training value, format, health limits and history. Muse
+  Glimmer says why, with every number checked. Then your agent talks to that member's agent (also Muse Glimmer,
+  from what the member shares with it). They propose, counter and agree, and code checks every time either side
+  names against both calendars and the court timetable. In a test run, Noor's agent turned down a Tuesday at Midtown
+  and countered with Saturday 11:00 at Riverside, because Noor starts no earlier than 11 at weekends; your agent
+  checked it and agreed.
+- **Challenges.** Challenges from members, open challenges, a random match drawn fairly from the members free when
+  you are, and results that move both ratings and post to the feed.
 - **Club night.** The head coach plans one session for all 12 members on 3 courts.
 - **Feed.** Members post, coaches reply, and an open game can be joined or a challenge taken up from the feed. Posts
   can be shared to WhatsApp and Threads.
@@ -203,8 +217,11 @@ It runs on one RTX 3090 in our own server, served by Ollama.
 - **Sapiens2** (Meta, open, 0.4B pose model, through Hugging Face Transformers on our server). It reads both players'
   pose on every highlight frame: the skeletons in the drawn reel, the racket hand the shuttle leaves from, and where
   the replay camera aims.
-- **SAM 2.1** (Meta, open, Hiera-L). From each player's box it cuts the player out: the silhouettes in the drawn reel,
-  and the spotlight on the smasher in the footage replay.
+- **SAM 2.1** (Meta, open, Hiera-L). From each player's box it cuts the player out: the silhouettes in the reel's
+  view of the rally, and the spotlight on the smasher.
+- **DETR** (Meta, open, ResNet-50). Finds the player and their opponent in a video the player films themselves.
+- **Agents that talk to agents.** Your agent and each member's agent are Muse Glimmer; they negotiate in structured
+  messages (propose, counter, accept, decline), and code checks every time against both calendars and the courts.
 - **Muse Spark.** The gateway speaks OpenAI-compatible chat completions too, so it switches to Muse Spark on the Meta
   Model API by setting three environment variables.
 - **SAM 3.1** *(planned; access requested)*: text-prompted segmentation and tracking of both players, so any uploaded

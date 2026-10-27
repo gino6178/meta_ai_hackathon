@@ -25,7 +25,7 @@ const graph = http.createServer((req, res) => {
 
 fs.rmSync("data/test-players.json", { force: true });
 const gw = spawn(process.execPath, ["src/server.js"], { env: { ...process.env, PORT: String(GW_PORT), MESSENGER_PAGE_TOKEN: "TEST", MESSENGER_APP_SECRET: SECRET, MESSENGER_VERIFY_TOKEN: "verify-me",
-  MESSENGER_PAGE_NAME: "ShuttleCoach (test Page)", MESSENGER_API: `http://127.0.0.1:${GRAPH_PORT}/v21.0`, STORE_FILE: "data/test-players.json" }, stdio: ["ignore", "pipe", "pipe"] });
+  MESSENGER_PAGE_NAME: "Serve (test Page)", MESSENGER_API: `http://127.0.0.1:${GRAPH_PORT}/v21.0`, STORE_FILE: "data/test-players.json" }, stdio: ["ignore", "pipe", "pipe"] });
 gw.stdout.on("data", (d) => process.stdout.write("  [gateway] " + d));
 gw.stderr.on("data", (d) => process.stdout.write("  [gateway!] " + d));
 

@@ -1,4 +1,6 @@
-# ShuttleCoach
+# Serve
+
+**Play more. Manage less.**
 
 **Say you want to play, and the agent does the rest.** It opens the map, lines up everyone's calendar, picks the
 venue in the middle and sends the invites. Behind it is a private badminton coaching staff: one phone video goes in,
@@ -16,11 +18,11 @@ exactly the chores we skip. Elite players have analysts, multi-camera tracking a
 them. Club and school players have a phone video and a guess. Many of them cannot send footage to the cloud either: it
 shows minors, and teams keep their tactics private.
 
-So ShuttleCoach hands every chore to a team of agents: a 24-hour coaching staff in your pocket.
+So Serve hands every chore to a team of agents: a 24-hour coaching staff in your pocket.
 
 ## What it does
 
-ShuttleCoach is a team of agents on one open model, Muse Glimmer:
+Serve is a team of agents on one open model, Muse Glimmer:
 
 - **Your agent.** It books games itself, and hands questions to the right coach agent.
 - **Five coach agents.** Each has its own facts, visual and memory, and checks in on Facebook Messenger. They debate at a
@@ -57,9 +59,14 @@ ShuttleCoach is a team of agents on one open model, Muse Glimmer:
     cuts them out of the frame.
   - *The smash, in slow motion.* The replay goes back to the player's smash, ramps down to quarter speed while the
     camera pushes in on the smasher, holds on contact with a flash, then follows the shuttle to the floor.
-  - *No footage needed.* By default the reel is drawn from the data: the broadcast angle through the court
-    homography, the players as their SAM 2.1 outlines with their Sapiens2 skeletons, the shuttle from racket to
-    racket. With footage, the replay dims the frame and spotlights the smasher's outline.
+  - *You, and how it is made.* What you post is you: your footage fills the top of the reel, with the smasher in a
+    spotlight, and under it is Serve's view of the same moment, at the same camera angle: the players as
+    their SAM 2.1 outlines with their Sapiens2 skeletons and the shuttle from racket to racket. A drawn-only reel,
+    with no footage at all, is one tap away.
+  - *Your own video.* Film a rally on your phone and pick it in the app. It goes to your own GPU server only, where
+    Meta's **DETR** finds you, Sapiens2 reads your pose, SAM 2.1 cuts you out, and your fastest overhead swing is
+    taken as your smash (`video/pose/reel.py`, streamed back step by step). The reel slows into the smash, lights
+    you up, freezes on contact, and shows the path of your racket hand underneath.
   - *Posting.* Muse Glimmer writes the caption and every number in it is checked against the rallies. The phone's
     share sheet sends the video straight to Instagram or Facebook; on a computer the reel is saved, the caption copied
     and the site opened.
@@ -100,7 +107,19 @@ ShuttleCoach is a team of agents on one open model, Muse Glimmer:
   - *The boss.* The next opponent is the boss. Each of its moves is a pattern that cost points, and every logged
     quest takes health off it.
   - *Rewards.* Streaks count recovery days, and badges include "Iron knee" for keeping every health limit.
-  - *Club league.* It ranks effort and improvement, never talent.
+  - *Leaderboard.* A club rating (Elo) that every reported challenge moves, with a podium, wins, effort and
+    improvement boards, and your place and what a win would be worth.
+  - *Best match.* Your agent ranks every member for a game this week. Code scores a fair game by rating (a win
+    chance near 50%), a shared free time, the trip to the venue in the middle, training value (their attack lands
+    where you lose points, or they play like your next opponent), format, health limits and history. Muse Glimmer
+    says why, and every number in it is checked.
+  - *Agent to agent.* Your agent then talks to that member's agent. Each side is Muse Glimmer: yours from your
+    calendar and the courts, theirs from what the member shares with their agent (free times, preferences, limits).
+    They propose, counter and agree, and code checks every time either side names against both calendars and the
+    court timetable. The agreed game is booked only when you say yes, and the other agent has already said yes.
+  - *Challenges.* Challenges members sent you (accept or decline), open challenges on the board, a random match
+    drawn fairly from the members free when you are, and results you report, which move both players' ratings and
+    post to the feed. Badges include "Giant killer" for beating someone rated 100 above you.
   - *Club night.* The head coach plans one session for all 12 members on 3 courts. Code builds the groups so nobody
     waits and shared health limits hold. Glimmer writes every group's drill and reason, and they are checked like
     any reply.
@@ -111,9 +130,10 @@ ShuttleCoach is a team of agents on one open model, Muse Glimmer:
 
 | Model | Where | Role |
 |---|---|---|
-| **Muse Glimmer** (open weights, 30B) | Own GPU server: Ollama on one RTX 3090 | Every agent: your agent (it reads play requests, hands questions to the coaches and writes invites), the five coach agents (in the app and in Messenger), the research agent; also memory extraction from chat, weekly quests and the club night plan |
+| **Muse Glimmer** (open weights, 30B) | Own GPU server: Ollama on one RTX 3090 | Every agent: your agent (it reads play requests, hands questions to the coaches, writes invites, explains your best match and negotiates with other members' agents), the members' agents, the five coach agents (in the app and in Messenger), the research agent; also memory extraction from chat, weekly quests, the club night plan and highlight captions |
 | **Sapiens2** (pose, 0.4B, open) | Own GPU server, Hugging Face Transformers | Both players' pose (body, feet, hands) on every highlight frame: the skeletons in the drawn reel, the racket hand that the shuttle leaves from, the camera's aim at the smasher |
-| **SAM 2.1** (Hiera-L, open) | Own GPU server, Hugging Face Transformers | Each player's outline from the YOLO box: the silhouettes in the drawn reel and the spotlight on the smasher in the footage replay |
+| **SAM 2.1** (Hiera-L, open) | Own GPU server, Hugging Face Transformers | Each player's outline from their box: the silhouettes in the reel's view of the rally and the spotlight on the smasher in the footage |
+| **DETR** (ResNet-50, open) | Own GPU server, Hugging Face Transformers | Finds you and the other player in a video you film yourself, the boxes Sapiens2 and SAM 2.1 start from |
 | SAM 3.1 | Planned (access requested) | Text-prompted player tracking, so uploaded videos become analysable; automatic court calibration; blurring bystanders before sharing |
 | Muse Spark / Muse Image (Meta Model API) | Planned | Agentic head coach with tool calls; consistent coach portraits and share cards |
 
@@ -134,9 +154,9 @@ Measured on our server: In an 18-question test across all five coaches (4 in Tra
 | Path | Content |
 |---|---|
 | `web/` | React + Three.js + Vite app; layouts for laptop, tablet and phone |
-| `agent/` | Node gateway: coach chat, number verifier, player memory, round-table delivery, Messenger webhook, highlight captions, research agent |
+| `agent/` | Node gateway: coach chat, number verifier, player memory, round-table delivery, Messenger webhook, highlight captions, best match and agent-to-agent scheduling (`match.js`), reels from your own video (`reel.js`), research agent |
 | `server/start.sh`, `watch.sh`, `up.sh` | Start Muse Glimmer (Ollama, GPU 1, port 11435) and the gateway (port 8790) on the GPU server; `up.sh` starts a watchdog that restarts them |
-| `video/` | The demo video pipeline (recording, narration, assembly) and `video/pose/`: player detection (YOLO), Sapiens2 pose and SAM 2.1 outlines for the highlight clips |
+| `video/` | The demo video pipeline (recording, narration, assembly) and `video/pose/`: player detection (YOLO), Sapiens2 pose and SAM 2.1 outlines for the highlight clips, and `reel.py` for a player's own video (DETR, Sapiens2, SAM 2.1) |
 | `docs/` | Design notes and the demo video script |
 | `submission/` | Project description, architecture diagram, cover and screenshots, the Glimmer evaluation and the self-improvement report |
 
@@ -185,7 +205,8 @@ the club use the demo data that is included.
 
 - 2D shuttle tracking: [TrackNetV5](https://github.com/gino6178/TrackNetV5).
 - Pose and outlines for the highlights: [Sapiens2](https://huggingface.co/facebook/sapiens2-pose-0.4b) (Meta,
-  Sapiens2 License) and [SAM 2.1](https://huggingface.co/facebook/sam2.1-hiera-large) (Meta, Apache 2.0), through
+  Sapiens2 License), [SAM 2.1](https://huggingface.co/facebook/sam2.1-hiera-large) (Meta, Apache 2.0) and
+  [DETR](https://huggingface.co/facebook/detr-resnet-50) (Meta, Apache 2.0), through
   Hugging Face Transformers (Apache 2.0). Player boxes: [YOLO11 pose](https://github.com/ultralytics/ultralytics)
   (Ultralytics, AGPL-3.0), run on our server only.
 - 3D anatomy: BodyParts3D 4.0, © The Database Center for Life Science, CC BY 4.0, adapted via

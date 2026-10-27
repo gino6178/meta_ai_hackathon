@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { agentPlay, agentQuests, agentClubPlan, agentChat, agentBook, agentBooking, agentCancel } from "./agent.js";
+import { agentPlay, agentQuests, agentClubPlan, agentChat, agentBook, agentBooking, agentCancel, agentBest, agentTalk } from "./agent.js";
 import { coachById } from "./coaches/personas.js";
 import { tactics } from "./coaches/analysis.js";
 import { memory } from "./memory.js";
@@ -49,6 +49,9 @@ export function playerOf(data) {
 // a coach question
 export function intentOf(text) {
   if (/highlight|reel|instagram|facebook post|post (it|my|on)|精華|剪片/i.test(text)) return "highlight";
+  if (/best (match|opponent|partner|pairing)|who should i (play|challenge)|right opponent|suits me|最適|最佳|最合適/i.test(text)) return "best";
+  if (/random (match|game|opponent|partner)|match me|draw (me )?a (match|game)|隨機|配對/i.test(text)) return "random";
+  if (/leaderboard|ranking|my rank|rating|排行|排名/i.test(text)) return "ranks";
   if (/want to play|book|court|find a game|game (on|this|next)|play (on|this|next|tomorrow|tonight|with)|doubles|singles|spar|challenge|rematch|約|打球|訂場|找人|單打|雙打|單挑|陪練|對打/i.test(text)) return "play";
   if (/quest|gamif|任務/i.test(text)) return "quests";
   if (/club night|團練|社團練習/i.test(text)) return "night";
@@ -72,6 +75,8 @@ function trail(id) {
   return {
     on: (e) => { q = q.then(async () => {
       if (e.type === "working") { update(id, { working: e.step }); if (!prefersReducedMotion()) await wait(300); return; }
+      // a message between your agent and another member's agent
+      if (e.type === "a2a") { update(id, (t) => ({ messages: [...(t.messages || []), { ...e, at: Date.now() }], working: null })); if (!prefersReducedMotion()) await wait(700); return; }
       update(id, (t) => ({ steps: [...t.steps, { ...e, at: Date.now() }], working: null }));
       if (!prefersReducedMotion()) await wait(480);
     }); },
@@ -151,6 +156,28 @@ function credit(b) {
   if (!fresh) return;
   const names = b.invites.filter((i) => i.status === "in").map((i) => first(i.name));
   postToClub({ kind: "game", coach: "tactics", text: `Booked ${b.option.format} on ${b.option.day} ${b.option.start} at ${b.option.venue.name} with ${names.join(", ")}.`, reply: "Good game plan: use it to test this week's quest." });
+}
+
+// ---- the best match, and your agent talking to theirs ----------------------------------------------------------
+export function startBest(body) {
+  const id = create("match", () => ({ title: `Find my best ${body.format === "doubles" ? "doubles partner" : "opponent"} this week`, href: "club?tab=challenges" }));
+  run(id, (on) => agentBest(body, on), (r) => ({ result: r, state: "done", summary: r.top.length ? `Best match: ${r.top[0].name}, ${r.top[0].fit}% fit` : r.why }));
+  return id;
+}
+export function startTalk(body, name) {
+  const id = create("talk", () => ({ title: `Agree a ${body.format} game with ${name}`, href: "club?tab=challenges", with: body.with }));
+  run(id, (on) => agentTalk(body, on), (r) => ({ result: r, state: r.agreed ? "needs" : "done",
+    summary: r.agreed ? `${first(name)}'s agent agreed: ${r.agreed.day} ${r.agreed.start} at ${r.agreed.venue.name}. Book it?` : `${first(name)}'s agent declined: ${r.reason || "not this week"}` }));
+  return id;
+}
+// book what the two agents agreed, as a play task, so its answer is followed like any other game
+export function bookAgreed(t, you) {
+  const o = t.result.agreed, mate = o.partners[0];
+  const id = create("play", () => ({ title: `${o.format === "singles" ? "Singles" : "Doubles"} with ${mate.name}, agreed by your agents`, href: "club?tab=challenges",
+    result: { options: [o], invites: { [mate.id]: t.result.log.filter((x) => x.from === "you").at(-1)?.text || "" }, message: "Your agents agreed it." } }));
+  update(t.id, { state: "done", summary: `Booked: ${o.day} ${o.start} at ${o.venue.name}` });
+  bookFor(id, o, you).catch((e) => update(id, { state: "failed", working: null, error: e.message }));
+  return id;
 }
 
 // ---- the club: this week's quests, and club night -----------------------------------------------------------------

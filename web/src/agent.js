@@ -11,6 +11,17 @@ async function call(path, body) {
 // resolves with the job's result
 async function stream(path, body, onEvent) {
   const r = await fetch(AGENT_URL + path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...body, stream: true }) });
+  return steps(r, onEvent);
+}
+// the best match this week, scored by your agent; then your agent and that member's agent agree a time and a court
+export const agentBest = (body, onEvent) => stream("/api/match/best", body, onEvent);
+export const agentTalk = (body, onEvent) => stream("/api/match/talk", body, onEvent);
+// your own video, sent to your own GPU server only: the steps stream back, then both players read on every frame
+export async function agentReel(file, onEvent) {
+  const r = await fetch(AGENT_URL + "/api/reel", { method: "POST", headers: { "content-type": file.type || "video/mp4" }, body: file });
+  return steps(r, onEvent);
+}
+async function steps(r, onEvent) {
   if (!r.ok || !r.body) throw new Error((await r.json().catch(() => ({}))).error || `gateway ${r.status}`);
   const rd = r.body.getReader(), dec = new TextDecoder();
   let buf = "";

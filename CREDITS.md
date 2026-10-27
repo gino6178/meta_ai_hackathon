@@ -1,6 +1,6 @@
 # Credits and licenses
 
-ShuttleCoach is our own work, built on the open models, libraries and data below.
+Serve is our own work, built on the open models, libraries and data below.
 
 ## Models
 
@@ -12,6 +12,7 @@ ShuttleCoach is our own work, built on the open models, libraries and data below
 | Whisper tiny (OpenAI), ONNX build | Speech recognition in the browser (voice questions) | MIT |
 | Sapiens2 pose 0.4B (Meta), `facebook/sapiens2-pose-0.4b` | Both players' pose on the highlight frames, on our GPU server | Sapiens2 License |
 | SAM 2.1 Hiera-L (Meta), `facebook/sam2.1-hiera-large` | Both players' outlines on the highlight frames, on our GPU server | Apache 2.0 |
+| DETR ResNet-50 (Meta), `facebook/detr-resnet-50` | Finds the players in a video the player films, on our GPU server | Apache 2.0 |
 
 ## Libraries
 
@@ -44,6 +45,6 @@ ShuttleCoach is our own work, built on the open models, libraries and data below
 
 ## Meta products
 
-Muse, Muse Glimmer, Muse Spark, SAM, Sapiens, Facebook, Messenger, Instagram, WhatsApp and Threads are Meta's. The
-Facebook, Messenger and Instagram marks appear only on share buttons and "built with" notes. ShuttleCoach is an independent entry to the
+Muse, Muse Glimmer, Muse Spark, SAM, Sapiens, DETR, Facebook, Messenger, Instagram, WhatsApp and Threads are Meta's. The
+Facebook, Messenger and Instagram marks appear only on share buttons and "built with" notes. Serve is an independent entry to the
 Meta Global AI Developer Hackathon 2026 and is not a Meta product.

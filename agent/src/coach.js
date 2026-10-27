@@ -42,7 +42,7 @@ function system(coachId, sheet, player, evidence, ruleSet) {
   const c = COACHES[coachId];
   const mem = player?.memories?.length ? player.memories.slice(-12).map((m) => `- ${m.text}`).join("\n") : "- (nothing yet)";
   const plan = player?.plan?.goals?.length ? player.plan.goals.map((g) => `- ${g}`).join("\n") : "- (no plan agreed yet)";
-  return `You are ${c.name}, the ${c.role}, on ShuttleCoach, a badminton coaching staff of AI agents that runs on the player's own hardware.
+  return `You are ${c.name}, the ${c.role}, on Serve, a badminton coaching staff of AI agents that runs on the player's own hardware.
 You are talking with ${sheet.name} after their match.
 
 FACTS you may use (cite them like [F2]); these are the only numbers you may state:

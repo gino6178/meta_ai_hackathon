@@ -98,7 +98,7 @@ function buildMeeting(data, m) {
     { d: "Wed", kind: "rest", min: 20, blocks: [["fitness", 20, "Mobility and easy bike"]] },
     { d: "Thu", kind: "court", min: 90, blocks: [["analyst", 25, `Pattern drill: break ${pt.worst[0]?.k ?? "the losing pattern"}`], ["tactics", 30, "Lift deep to the backhand corner, recover to base"], ["technique", 25, "Smash and clear from a high contact"], ["fitness", 10, "Cool-down"]] },
     { d: "Fri", kind: "rest", min: 0, blocks: [] },
-    { d: "Sat", kind: "match", min: 60, blocks: [["analyst", 60, "Practice match, recorded: ShuttleCoach re-measures the four goals"]] },
+    { d: "Sat", kind: "match", min: 60, blocks: [["analyst", 60, "Practice match, recorded: Serve re-measures the four goals"]] },
     { d: "Sun", kind: "rest", min: 20, blocks: [["fitness", 20, "Recovery walk and stretching"]] },
   ];
   return { talk, goals, days, mem, ruling };
@@ -321,8 +321,8 @@ export default function RoundTable({ data }) {
             {sent.startsWith("!") && <span className="tiny bad" role="alert">{sent.slice(1)}</span>}
             <button className="btn ghost" disabled={posted} onClick={() => setPosted(postToClub({ kind: "plan", coach: "fitness", text: `Shared this week's round-table goals: ${meet.goals.map((g) => g.text.toLowerCase()).join("; ")}.`, reply: "Good luck this week. The club will see your goals, not your health details." }))}>
               {posted ? "Shared with the club" : "Share with the club"}</button>
-            <a className="chip" href={shareLinks(`My week from the ShuttleCoach round table: ${meet.goals.map((g) => g.text).join("; ")}.`).whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
-            <a className="chip" href={shareLinks(`My week from the ShuttleCoach round table: ${meet.goals.map((g) => g.text).join("; ")}.`).threads} target="_blank" rel="noopener noreferrer">Threads</a>
+            <a className="chip" href={shareLinks(`My week from the Serve round table: ${meet.goals.map((g) => g.text).join("; ")}.`).whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+            <a className="chip" href={shareLinks(`My week from the Serve round table: ${meet.goals.map((g) => g.text).join("; ")}.`).threads} target="_blank" rel="noopener noreferrer">Threads</a>
             <span className="tiny muted">Saved goals are retrieved by every coach next session, and the next recorded match is scored against them. Players get the week in Messenger, then a nudge before every session.</span>
           </div>
         </article>

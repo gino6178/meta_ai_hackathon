@@ -26,6 +26,8 @@ else echo "Ollama :11435 already running"; fi
 if ! listening 8790; then
   cd "$ROOT/agent" && PORT=8790 LLM_URL=http://127.0.0.1:11435/v1 LLM_MODEL=muse-glimmer LLM_DEVICE="RTX 3090 (CUDA)" \
     EMBED_URL=http://127.0.0.1:11434 ALLOW_ORIGINS=http://127.0.0.1:5191,http://localhost:5191 \
+    REEL_PYTHON="${REEL_PYTHON:-$HOME/miniconda3/envs/isaac/bin/python}" REEL_SCRIPT="$ROOT/pose/reel.py" REEL_GPU=0 \
+    REEL_HF_CACHE="${REEL_HF_CACHE:-/mnt/nas/shuttlecoach-meta/hf}" \
     setsid -f "$NODE_BIN" --unhandled-rejections=warn src/server.js >> "$ROOT/agent/gateway.log" 2>&1 < /dev/null
   echo "$(date "+%F %T") gateway starting on :8790 -> muse-glimmer" >> "$ROOT/agent/gateway.log"
   echo "gateway starting on :8790 -> muse-glimmer, log: $ROOT/agent/gateway.log"

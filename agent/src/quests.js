@@ -47,7 +47,7 @@ export async function quests({ memory = [], onStep } = {}) {
   const tell = (s) => onStep?.({ type: "step", ...s }), work = (step) => onStep?.({ type: "working", step });
   const limited = memory.some((m) => /knee|ankle|膝|腳踝/i.test(m) && /sore|pain|hurt|injur|痛|痠|傷/i.test(m));
   const scoped = (c) => sheet.facts.filter((f) => AREA[c].includes(f.key));
-  const sys = `You are ShuttleCoach's coaching staff turning this week's training into a game for ${sheet.name}.
+  const sys = `You are Serve's coaching staff turning this week's training into a game for ${sheet.name}.
 Each coach gives ONE quest that counters one move of the next opponent (the boss), ${b.name}.
 BOSS MOVES:
 ${b.moves.map((m) => `- ${m.id}: ${m.name} [${m.fact}] ${m.text}`).join("\n")}

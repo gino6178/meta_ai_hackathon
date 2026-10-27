@@ -1,7 +1,7 @@
 // Scholarly search clients: OpenAlex (main: open abstracts, no key), arXiv, and Semantic Scholar (best effort; it
 // rate-limits without an API key). Only the topic query is sent out, never player data. Results are normalised to
 // { key, title, authors, year, venue, doi, url, abstract, source, cited } and de-duplicated by DOI or title.
-const UA = { "user-agent": "ShuttleCoach-research-agent/0.1 (badminton coaching research prototype)" };
+const UA = { "user-agent": "Serve-research-agent/0.1 (badminton coaching research prototype)" };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const norm = (t) => (t || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 const keyOf = (p) => (p.doi ? `doi:${p.doi.toLowerCase()}` : `t:${norm(p.title).slice(0, 120)}`);

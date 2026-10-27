@@ -1,5 +1,5 @@
 {
-  "name": "shuttlecoach-agent",
+  "name": "serve-agent",
   "private": true,
   "type": "module",
   "description": "Coach agent gateway: grounded chat on a local LLM, player memory, Facebook Messenger reminders and conversations.",

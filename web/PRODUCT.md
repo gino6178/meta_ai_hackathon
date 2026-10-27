@@ -12,7 +12,7 @@ product
 The job across all three: turn one recorded match into a few decisions (what cost points, what to train, what to do next point) that the player trusts because every number can be traced to a shot.
 
 ## Product Purpose
-ShuttleCoach is a private, on-device badminton analyst: one camera in, a coaching staff out. Four coach agents and a round table explain the match, adapt to the player's memory, and agree a weekly plan; live mode briefs the player between points; highlights are filmed and shared from the device. Success is a coach or player acting on the advice, and saying it felt like a real coaching staff, not a stats dashboard.
+Serve is a private, on-device badminton analyst: one camera in, a coaching staff out. Four coach agents and a round table explain the match, adapt to the player's memory, and agree a weekly plan; live mode briefs the player between points; highlights are filmed and shared from the device. Success is a coach or player acting on the advice, and saying it felt like a real coaching staff, not a stats dashboard.
 
 ## Brand Personality
 **Exact, live, personal.** Two registers inside one product:

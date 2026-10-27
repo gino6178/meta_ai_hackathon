@@ -20,6 +20,8 @@ const club = await import("./club.js");
 const quests = await import("./quests.js");
 const play = await import("./play.js");
 const social = await import("./social.js");
+const reel = await import("./reel.js");
+const match = await import("./match.js");
 
 const PORT = +(process.env.PORT || 8787);
 const ORIGINS = (process.env.ALLOW_ORIGINS || "http://127.0.0.1:5190,http://localhost:5190").split(",");
@@ -104,7 +106,7 @@ http.createServer(async (req, res) => {
       const s = factSheet("A");
       const pbs = evolve.playbooks();
       return json(res, 200, { llm: await health(), kb: kb.stats(), busy, feedback: evolve.feedbackStats(),
-        playbooks: Object.fromEntries(Object.entries(pbs).map(([c, p]) => [c, { version: p.version, rules: p.rules.length, pending: p.proposals.filter((x) => x.status === "pending").length }])), messenger: { enabled: msn.state.enabled, page: msn.state.page, error: msn.state.error, lastEvent: msn.state.lastEvent },
+        playbooks: Object.fromEntries(Object.entries(pbs).map(([c, p]) => [c, { version: p.version, rules: p.rules.length, pending: p.proposals.filter((x) => x.status === "pending").length }])), messenger: { enabled: msn.state.enabled, page: msn.state.page, error: msn.state.error, lastEvent: msn.state.lastEvent }, reel: reel.ready(),
         players: store.players().length, athlete: s.name, facts: s.facts.length }, o);
     }
     if (u.pathname === "/api/players") return json(res, 200, store.players().map(({ id, name, memories, history, plan, prefs, pantry, events, logs }) => ({ id, name, memories, history: history.slice(-20), plan, prefs, pantry, events, logs })), o);
@@ -130,6 +132,15 @@ http.createServer(async (req, res) => {
     if (u.pathname === "/api/play/plan" && req.method === "POST") {
       const b = await bodyOf(req);
       return b.stream ? stream(res, o, (send) => play.plan({ text: b.text, you: b.you, onStep: send })) : json(res, 200, await play.plan({ text: b.text, you: b.you }), o);
+    }
+    // best match: your agent ranks the members for a game (body: { you, ratings, played, format })
+    if (u.pathname === "/api/match/best" && req.method === "POST") { const b = await bodyOf(req); return stream(res, o, (send) => match.best({ ...b, onStep: send })); }
+    // agent to agent: your agent and the member's agent agree a time and a court (body: { with, format, you })
+    if (u.pathname === "/api/match/talk" && req.method === "POST") { const b = await bodyOf(req); return stream(res, o, (send) => match.talk({ ...b, onStep: send })); }
+    // your own video -> a highlight reel (the raw video is the body): you found, read and cut out, your smash found
+    if (u.pathname === "/api/reel" && req.method === "POST") {
+      if (!reel.ready()) return json(res, 503, { error: "Making reels from your own video is not set up on this server (REEL_PYTHON, REEL_SCRIPT)." }, o);
+      return stream(res, o, (send) => reel.make(req, send));
     }
     // the caption for a highlight reel on Instagram or Facebook (body: { player, event, picks })
     if (u.pathname === "/api/highlight/caption" && req.method === "POST") { const b = await bodyOf(req); return json(res, 200, await social.caption(b), o); }

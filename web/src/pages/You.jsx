@@ -68,7 +68,7 @@ export default function You({ data }) {
         <ul className="view-grid plain">
           <li><a href="#/memory"><Icon name="memory" size={22} /><span><b>Player memory</b><span className="tiny muted">What the coaches remember, and what to forget</span></span></a></li>
           <li><a href="#/lab"><Icon name="verify" size={22} /><span><b>Lab</b><span className="tiny muted">How the coaches improve, with your approval</span></span></a></li>
-          <li><a href="#/about"><Icon name="info" size={22} /><span><b>About ShuttleCoach</b><span className="tiny muted">How it works and what stays private</span></span></a></li>
+          <li><a href="#/about"><Icon name="info" size={22} /><span><b>About Serve</b><span className="tiny muted">How it works and what stays private</span></span></a></li>
         </ul>
       </section>
     </div>

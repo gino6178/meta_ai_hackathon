@@ -257,6 +257,8 @@
 .hl-actions { display: flex; gap: var(--s3); flex-wrap: wrap; margin-bottom: var(--s2); }
 .hl-view { position: sticky; top: calc(var(--nav-h) + var(--s4)); }
 .hl-canvas[hidden] { display: none; }
+.hl-how { margin: var(--s2) var(--s1) 0; text-wrap: pretty; }
+.hl-how b { color: var(--ink); font-weight: 650; }
 .hl-canvas { width: 100%; height: auto; border-radius: var(--r-lg); border: 1px solid var(--rule); background: var(--bg); display: block; }
 .hl-done { margin-top: var(--s4); padding: var(--s4); border-radius: var(--r-md); border: 1px solid color-mix(in srgb, var(--good) 50%, transparent); background: color-mix(in srgb, var(--good) 6%, transparent); display: grid; gap: var(--s3); }
 .hl-done textarea { width: 100%; resize: vertical; font-size: 14px; color: var(--ink-2); }
@@ -350,3 +352,24 @@
   .rfilters .seg { flex: 1 1 100%; }
   .rfilters .btn { width: 100%; }
 }
+
+/* your own video: pick a clip, watch the server read it, then the reel uses it */
+.own-card { display: grid; gap: var(--s2); padding: var(--s3) var(--s4); margin-bottom: var(--s4); border-radius: var(--r-md); border: 1px solid var(--rule-strong); background: radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--agent) 9%, transparent), transparent 60%), var(--surface); }
+.own-card.ready { border-color: color-mix(in srgb, var(--agent) 55%, transparent); }
+.own-h { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); }
+.own-h b { font-size: 16px; }
+.own-card p { margin: 0; }
+.own-pick { justify-self: start; position: relative; cursor: pointer; }
+.own-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.own-pick:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.own-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.own-steps li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: var(--s2); align-items: start; }
+.own-steps li > .icon { color: var(--agent); margin-top: 2px; }
+.own-steps li span { display: grid; min-width: 0; }
+.own-steps b { font-size: 14px; } .own-steps em { font-style: normal; font-size: 13px; color: var(--ink-3); }
+.own-steps .working b { color: var(--agent); }
+.own-steps .failed { grid-template-columns: minmax(0, 1fr); } .own-steps .failed b { color: var(--bad); }
+.own-steps .dots { display: inline-flex; gap: 3px; margin-top: 6px; } .own-steps .dots i { width: 4px; height: 4px; border-radius: 50%; background: var(--agent); animation: blink 1s infinite; }
+.own-steps .dots i:nth-child(2) { animation-delay: .15s; } .own-steps .dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes blink { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .own-steps .dots i { animation: none; } }

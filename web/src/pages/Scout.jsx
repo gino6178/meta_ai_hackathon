@@ -45,7 +45,7 @@ export default function Scout() {
       </header>
       <article className="sheet">
         <header>
-          <span className="tag">ShuttleCoach · scouting report</span>
+          <span className="tag">Serve · scouting report</span>
           <h2 className="sheet-title">{name}</h2>
           <p className="muted">{ms.map((x) => `${x.m.event} vs ${x.opp}`).join(" · ")} · {sum((x) => x.pr.shots)} shots analysed on-device</p>
         </header>

@@ -1,4 +1,4 @@
-# ShuttleCoach: Meta hackathon demo video script (3:00)
+# Serve: Meta hackathon demo video script (3:00)
 
 Meta Global AI Developer Hackathon 2026 · Indie Developer track · Build for Your World
 
@@ -22,7 +22,7 @@ English, about 140 words per minute.
 
 | Time | Screen (what to do) | Narration | On-screen caption |
 |---|---|---|---|
-| 0:00–0:08 | Agent home. Type "Challenge Kenji to a singles match this week" and press Enter. | Most games never happen because booking a court and lining up a friend is a chore. With ShuttleCoach you just say it. | Say you want to play |
+| 0:00–0:08 | Agent home. Type "Challenge Kenji to a singles match this week" and press Enter. | Most games never happen because booking a court and lining up a friend is a chore. With Serve you just say it. | Say you want to play |
 | 0:08–0:20 | The Play view opens. Muse Glimmer reads the request; the map opens with the venues and both home areas; the courts light up; the week appears with the slots you are both free. | Muse Glimmer reads the request. The agent opens the map, checks every court, and lays both calendars side by side. | The map, the courts, both calendars |
 | 0:20–0:30 | The routes draw to Midtown with the minutes on them; the trail says "the fairest venue". Press Send the challenge, confirm, and Kenji's answer comes in. | It picks the venue in the middle, 17 minutes for me and 12 for Kenji, writes the challenge, and checks every time and price before anything is booked. | The venue in the middle |
 | 0:30–0:38 | Open Rally 3D. Play the rally and orbit the 3D court. Click the smash in the stroke strip. | One ordinary camera goes in. Out comes the shuttle's flight in metric 3D, every hit, and both players' positions. This smash left the racket at about 200 kilometres an hour, estimated from the 3D track. | One camera → 3D flight |
@@ -33,20 +33,21 @@ English, about 140 words per minute.
 | 2:20–2:35 | Lab. Point at Coach Ren's playbook v6: a rule learned from a paper [E28], then the change waiting because it touches health. Press Approve. | The coaches improve themselves. A research agent reads sports science, and every night each coach proposes changes to its own playbook. A change is adopted only if it cites a finding, passes the safety rules and does not make the coach worse on its test questions. Anything about health waits for me. | Coach agents that improve themselves, safely |
 | (2:20–2:35, alternative) | *(SAM 3.1, once it ships)* Analyze page: drop in your own video and show the player masks and the court found automatically. | SAM 3.1 finds and tracks both players from a text prompt, and calibrates the court on its own, so your own videos become analysable. | SAM 3.1 · players and court from a text prompt |
 | 2:35–2:50 | Live mode on a tablet: the score on the video, the brief under it, the countdown, "Next serve". | Courtside, the live view gives you one brief to read in the 20 seconds before the next serve. | Built for the 20 seconds between points |
-| 2:50–3:00 | Back to the agent home, with the game in Up next. | ShuttleCoach: say you want to play, and your agent and your coaching staff do the rest, on hardware you own. | ShuttleCoach · Meta Global AI Developer Hackathon |
+| 2:50–3:00 | Back to the agent home, with the game in Up next. | Serve: say you want to play, and your agent and your coaching staff do the rest, on hardware you own. | Serve · Meta Global AI Developer Hackathon |
 
 Use the Lab segment at 2:20–2:35. If SAM 3.1 ships, take 10 seconds from the round table for it.
 
-## The produced video (2:40)
+## The produced video (2:55)
 
-`video/ShuttleCoach_Meta_demo.mp4` (1080p, about 33 MB), `video/ShuttleCoach_Meta_demo_small.mp4` (720p, for
-phones), `video/ShuttleCoach_Meta_demo_no_voice.mp4` (for a voice-over of your own). The mp4 files are not in git;
+`video/Serve_Meta_demo.mp4` (1080p, about 33 MB), `video/Serve_Meta_demo_small.mp4` (720p, for
+phones), `video/Serve_Meta_demo_no_voice.mp4` (for a voice-over of your own). The mp4 files are not in git;
 rebuild them with the steps below.
 
-Scenes, in order: the pain point ("we get lazy about training") with the Meta logo · the challenge to Kenji on the map
+Scenes, in order: the pain point ("we get lazy about training") with Serve and the Meta logo · the challenge to Kenji on the map
 · the tasks · the coach agents and a checked answer · the round table · the 24-hour coach in Messenger (the end-to-end
 test's real conversation) · the highlight reel (Sapiens2 and SAM 2.1, the smash in slow motion at real speed, the
-Glimmer caption, Instagram and Facebook) · the coaches learning in Lab · the club · the end card.
+Glimmer caption, Instagram and Facebook) · the coaches learning in Lab · the club (quests and the boss, the leaderboard,
+your best match, then your agent and that member's agent agreeing a time) · the end card (Play more. Manage less.).
 
 0. **Highlight data.** On the GPU server, in `~/shuttlecoach-meta/pose`: `video/pose/candidates.py`, `detect.py`
    (YOLO, at 1280 px) and `people.py` (Sapiens2 and SAM 2.1). Then `video/pose/pack.py` writes
@@ -79,4 +80,4 @@ as their SAM 2.1 outlines with Sapiens2 skeletons) are drawn by the app.
 
 ## End card (3 s)
 
-ShuttleCoach · [name] · [code URL]
+Serve · [name] · [code URL]

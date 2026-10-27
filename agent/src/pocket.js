@@ -9,7 +9,7 @@ import { factSheet } from "./facts.js";
 import * as evolve from "./evolve.js";
 import * as life from "./life.js";
 
-export const HELP = `I'm your ShuttleCoach staff, here 24 hours a day: Coach Lin (tactics), Coach Kai (technique), Coach Ren (fitness), Coach Ada (data), Coach Mei (nutrition) and the Head Coach.
+export const HELP = `I'm your Serve staff, here 24 hours a day: Coach Lin (tactics), Coach Kai (technique), Coach Ren (fitness), Coach Ada (data), Coach Mei (nutrition) and the Head Coach.
 Just write to us: what you bought ("eggs, tofu, rice"), your schedule ("club training Wed 19:00-21:00", "exam Friday"), what you trained ("45 min footwork, knee fine"), or any question. We file it and plan around it.
 /week calendar and training log · /today today's plan · /meal what to eat next · /pantry your kitchen · /log a session · /plan the round-table plan · /summary match summary · /coach lin|kai|ren|ada|mei|head · /forget delete everything we stored about you`;
 

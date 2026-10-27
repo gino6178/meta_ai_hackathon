@@ -95,7 +95,7 @@ export async function planNight({ you } = {}) {
   const blocks = schedule(club, members, sheet), minutes = blocks.map((b) => b.minutes);
   const slots = blocks.flatMap((b, bi) => b.groups.map((g, gi) => ({ block: bi + 1, group: gi + 1, minutes: b.minutes, court: g.court, focus: g.focus,
     who: g.who.map((id) => { const m = members.find((x) => x.id === id); return `${id} (weak ${m.weak}${m.strength ? `; ${m.strength.shot} to the ${m.strength.zone}` : ""}${m.limit && m.shares?.limits ? `; ${m.limit}` : ""})`; }) })));
-  const sys = `You are the Head Coach on ShuttleCoach, writing tonight's club session for ${club.name}. The groups are already set.
+  const sys = `You are the Head Coach on Serve, writing tonight's club session for ${club.name}. The groups are already set.
 FACTS (cite them like [F2]; these are the only numbers you may state, apart from minutes, reps and courts):
 ${sheet.facts.map((f) => `[${f.id}] ${f.text}`).join("\n")}
 

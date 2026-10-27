@@ -273,7 +273,7 @@ function exportShots(m, fmt) {
     : JSON.stringify({ match: `${m.names.A} vs ${m.names.B}`, event: m.event, units: "metres, full court 6.1 x 13.4, y from the far baseline", shots: rows }, null, 1);
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([body], { type: fmt === "csv" ? "text/csv" : "application/json" }));
-  a.download = `shuttlecoach_shots.${fmt}`; a.click();
+  a.download = `serve_shots.${fmt}`; a.click();
 }
 
 // knee bend at every hit of the replayed rally, from the pose skeleton (image-plane angles, one camera)

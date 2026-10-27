@@ -8,12 +8,16 @@ import { memory } from "../memory.js";
 import { readGame, saveGame, isoWeek, today } from "../club/game.js";
 import { postToClub } from "../club/share.js";
 import { useTasks, startQuests, startNight, startPlay, playerOf } from "../tasks.js";
+import { ratings, records } from "../club/arena.js";
+import { Rankings, Challenges, Standing } from "./Arena.jsx";
 import { go } from "../App.jsx";
 import "./club.css";
 import "./agent.css";
 
-// The club, in two places. Club is the feed (what members and their coaches post, open games to join, a challenge to
-// take up) beside the league, club night and the practice partners. Goals is training as a game: each coach gives a
+// The club, in two places. Club has three tabs: the feed (what members and their coaches post, open games to join, a
+// challenge to take up) beside the top of the table, club night and the practice partners; the leaderboard; and the
+// challenges (random match, challenges for you, results that move the club rating; see Arena.jsx). Goals is training
+// as a game: each coach gives a
 // weekly quest (Muse Glimmer, numbers verified), the next opponent is the boss, and XP, streaks and badges follow.
 // The game state lives in this browser; the club only sees what the player shares.
 const coachOf = (id) => COACHES.find((c) => c.id === id);
@@ -39,8 +43,11 @@ export default function Club({ data, view = "feed" }) {
   const tasks = useTasks();
   const [club, setClub] = useState(null);
   const [g, setG] = useState(() => ({ shares: { goals: true, progress: true, highlights: false, limits: true }, progress: {}, activity: [], cheers: {}, mine: [], joined: {}, ...readGame() }));
-  const [rank, setRank] = useState("effort");
-  const [all, setAll] = useState({ league: false, feed: false });
+  const tabOf = () => new URLSearchParams(location.hash.split("?")[1] || "").get("tab") || "feed";
+  const [tab, setTab] = useState(tabOf);
+  const [hash, setHash] = useState(location.hash); // a new ask (#/club?tab=challenges&spin=1&fmt=doubles) starts the draw again
+  useEffect(() => { const on = () => { setTab(tabOf()); setHash(location.hash); }; addEventListener("hashchange", on); return () => removeEventListener("hashchange", on); }, []);
+  const [all, setAll] = useState({ feed: false });
   const [post, setPost] = useState("");
   const [err, setErr] = useState({});
   useEffect(() => { fetch("/data/club.json").then((r) => r.json()).then(setClub).catch(() => setErr((e) => ({ ...e, club: "The club data could not be loaded." }))); }, []);
@@ -78,7 +85,10 @@ export default function Club({ data, view = "feed" }) {
   const done = (x) => prog(x.id) >= x.target;
   const damage = q ? q.quests.reduce((a, x) => a + earned(x), 0) : 0;
   const hp = q ? Math.max(0, q.boss.hp - damage) : 0;
-  const myBadges = [q?.quests.some(done) && "first-quest", streak >= 5 && "streak-5", q && hp === 0 && "boss-slayer", limited && rest > 0 && "iron-knee"].filter(Boolean);
+  const res = g.arena?.results || [];
+  const rivals = Object.values(res.flatMap((x) => x.vs).reduce((a, id) => ({ ...a, [id]: (a[id] || 0) + 1 }), {}));
+  const myBadges = [q?.quests.some(done) && "first-quest", streak >= 5 && "streak-5", q && hp === 0 && "boss-slayer", limited && rest > 0 && "iron-knee",
+    res.some((x) => x.won) && "first-win", res.some((x) => x.won && x.gap >= 100) && "giant-killer", rivals.some((n) => n >= 3) && "rival"].filter(Boolean);
 
   const log = (x) => setG((s) => {
     const k = `${wk}:${x.id}`, n = (s.progress[k] || 0) + 1, finished = n === x.target;
@@ -93,9 +103,11 @@ export default function Club({ data, view = "feed" }) {
   const byId = Object.fromEntries(members.map((m) => [m.id, m]));
   const lvl = (xp) => levels.filter((t) => xp >= t).length;
   const drop = (m) => (m.net && m.net[1] != null ? (m.net[0] - m.net[1]) / m.net[0] : null);
-  const league = [...members].sort((a, b) => rank === "effort" ? b.xp - a.xp : (drop(b) ?? -1) - (drop(a) ?? -1));
-  // the top six, plus you wherever you are, until the whole table is opened
-  const shown = all.league ? league : league.filter((m, i) => i < 6 || m.id === "you");
+  // the club rating: the demo table plus every result you report (club/arena.js)
+  const r = ratings(club, res), rec = records(club, res);
+  const table = [...members].sort((a, b) => r[b.id] - r[a.id]), myRank = table.findIndex((m) => m.id === "you") + 1;
+  const challenge = (m) => go(`play?task=${startPlay(`Challenge ${first(m.name)} to a singles match this week`, you)}`);
+  const standing = <Standing me={members[0]} r={r} rec={rec} rank={myRank} of={table.length} ahead={table[myRank - 2]} />;
   const feeders = club.members.filter((m) => m.strength?.zone === me.weak);
   const feed = [...g.mine.map((f) => ({ ...f, ago: f.at ? agoOf(f.at) : "today" })), ...club.feed];
   const cheer = (id) => setG((s) => ({ ...s, cheers: { ...s.cheers, [id]: !s.cheers[id] } }));
@@ -196,7 +208,7 @@ export default function Club({ data, view = "feed" }) {
         <div>
           <span className="tag">{members.length} members · demo club</span>
           <h1 className="h1">{club.name}</h1>
-          <p className="muted">Effort and improvement count here, not talent. {club.note}</p>
+          <p className="muted">Challenge anyone, climb the club table, and get credit for effort and improvement too. {club.note}</p>
         </div>
         <div className="cta-row">
           <a className="btn primary" href="#/play"><Icon name="book" size={18} />Find a game</a>
@@ -204,7 +216,12 @@ export default function Club({ data, view = "feed" }) {
         </div>
       </header>
 
-      <div className="club-grid">
+      <nav className="club-tabs" aria-label="Club">
+        {[["feed", "Feed"], ["ranks", "Leaderboard"], ["challenges", "Challenges"]].map(([k, l]) => <a key={k} href={k === "feed" ? "#/club" : `#/club?tab=${k}`} aria-current={tab === k ? "page" : undefined}>{l}</a>)}
+      </nav>
+      {tab === "ranks" && <>{standing}<Rankings club={club} members={members} r={r} rec={rec} drop={drop} levelOf={(m) => lvl(m.id === "you" ? totalXp : m.xp)} onChallenge={challenge} /></>}
+      {tab === "challenges" && <>{standing}<Challenges key={hash} club={club} members={members} r={r} rec={rec} g={g} you={you} me={members[0]} /></>}
+      {tab === "feed" && <div className="club-grid">
         <div className="club-feed">
           <form className="post-box" onSubmit={send}>
             <span className="mav you" aria-hidden="true">You</span>
@@ -225,7 +242,8 @@ export default function Club({ data, view = "feed" }) {
                       <div className="open-card">
                         <Icon name="book" size={18} />
                         <span><b>{f.open.challenge ? "Open to a challenge" : `${f.open.spots} spot left`}</b><span className="tiny muted">{f.open.day} {f.open.start} · {f.open.venue}</span></span>
-                        {f.open.challenge
+                        {f.open.challenge && f.who === "you" ? <span className="task-state">On the board</span>
+                          : f.open.challenge
                           ? <button className="btn primary sm" onClick={() => go(`play?task=${startPlay(`Challenge ${first(m.name)} to a singles match this weekend`, you)}`)}>Challenge {first(m.name)}</button>
                           : joined ? <span className="task-state done">You're in</span> : <button className="btn primary sm" onClick={() => join(f)}>Join</button>}
                       </div>
@@ -233,7 +251,7 @@ export default function Club({ data, view = "feed" }) {
                     {f.reply && c && <p className="feed-reply" style={{ "--cc": c.color }}><Avatar coach={c} size={24} /> <span><b>{c.name}</b> {f.reply}</span></p>}
                     <span className="feed-meta">
                       <button className={`chip react ${on ? "on" : ""}`} aria-pressed={on} aria-label={`Cheer, ${(f.cheers || 0) + (on ? 1 : 0)}`} onClick={() => cheer(f.id)}><Icon name="heart" size={16} />{(f.cheers || 0) + (on ? 1 : 0)}</button>
-                      <ShareLinks text={`${m?.name ?? "A member"} at ${club.name}: ${f.text} (ShuttleCoach)`} />
+                      <ShareLinks text={`${m?.name ?? "A member"} at ${club.name}: ${f.text} (Serve)`} />
                     </span>
                   </div>
                 </li>
@@ -245,30 +263,23 @@ export default function Club({ data, view = "feed" }) {
 
         <aside className="club-side">
           <section className="panel" aria-labelledby="l-h">
-            <header className="club-h">
-              <h2 id="l-h" className="panel-h">League · {club.challenge.title}</h2>
-              <div className="seg sm" role="radiogroup" aria-label="Rank by">
-                {[["effort", "Effort"], ["improve", "Improvement"]].map(([k, l]) => <button key={k} role="radio" aria-checked={rank === k} onClick={() => setRank(k)}>{l}</button>)}
-              </div>
-            </header>
+            <header className="club-h"><h2 id="l-h" className="panel-h">Top of the table</h2><a className="link" href="#/club?tab=ranks">Leaderboard</a></header>
             <ol className="league-list">
-              {shown.map((m) => { const i = league.indexOf(m); return (
+              {table.filter((m, i) => i < 5 || m.id === "you").map((m) => (
                 <li key={m.id} className={m.id === "you" ? "me" : ""}>
-                  <span className="mono rk">{i + 1}</span><Member m={m} size={32} />
-                  <span className="lg-who"><b>{m.name}</b><span className="tiny muted">level {lvl(m.id === "you" ? totalXp : m.xp)} · weak: {m.weak}{m.limit && m.shares?.limits ? ` · ${/jump/i.test(m.limit) ? "avoids jumps" : m.limit}` : ""}</span></span>
-                  <span className="lg-num">{rank === "effort" ? <><b>{m.xp}</b><small>XP</small></> : !m.net ? <small>not shared</small> : m.net[1] == null ? <small>next match</small> : <><b className={drop(m) > 0 ? "good" : ""}>{drop(m) > 0 ? `−${Math.round(drop(m) * 100)}%` : "±0"}</b><small>{m.net[0]} → {m.net[1]}</small></>}</span>
-                  {(m.badges || []).length > 0 && <span className="lg-badges">{m.badges.map((b) => <span key={b} className="badge" title={club.badges[b]?.how}>{club.badges[b]?.name}</span>)}</span>}
+                  <span className="mono rk">{table.indexOf(m) + 1}</span><Member m={m} size={32} />
+                  <span className="lg-who"><b>{m.id === "you" ? "You" : m.name}</b><span className="tiny muted">{rec[m.id].w}–{rec[m.id].l} · level {lvl(m.id === "you" ? totalXp : m.xp)}</span></span>
+                  <span className="lg-num"><b className="mono">{r[m.id]}</b><small>rating</small></span>
                 </li>
-              ); })}
+              ))}
             </ol>
-            {league.length > shown.length || all.league ? <button className="link" onClick={() => setAll((a) => ({ ...a, league: !a.league }))}>{all.league ? "Show the top six" : `Show all ${league.length} members`}</button> : null}
-            <p className="tiny muted">Effort ranks XP from quests, games and recovery days this week; improvement ranks the drop in net errors since the challenge started.</p>
+            <a className="btn primary sm" href="#/club?tab=challenges&spin=1"><Icon name="spark" size={16} />Draw a random match</a>
           </section>
 
           <section className="panel" aria-labelledby="n-h">
             <header className="club-h">
               <h2 id="n-h" className="panel-h">Club night · {club.night.day} {club.night.start}</h2>
-              {night && <ShareLinks text={`${club.name}, ${club.night.day} ${club.night.start}: ${night.plan.title}. ${night.plan.blocks.map((b) => `${b.minutes} min ${b.groups.map((x) => x.drill).join(" / ")}`).join("; ")}. Planned with ShuttleCoach.`} />}
+              {night && <ShareLinks text={`${club.name}, ${club.night.day} ${club.night.start}: ${night.plan.title}. ${night.plan.blocks.map((b) => `${b.minutes} min ${b.groups.map((x) => x.drill).join(" / ")}`).join("; ")}. Planned with Serve.`} />}
             </header>
             <p className="tiny muted">{club.night.courts} courts · {club.night.minutes} min · {members.length} players</p>
             {nTask && <TaskCard t={nTask} steps={3} />}
@@ -323,7 +334,7 @@ export default function Club({ data, view = "feed" }) {
             <p className="tiny muted">Never shared: match footage, your chats with the coaches, your memory, where you live or what an injury is. {limited && !g.shares.limits ? "With health limits off, the club night plan will not know to keep you off jumps." : ""}</p>
           </section>
         </aside>
-      </div>
+      </div>}
     </div>
   );
 }

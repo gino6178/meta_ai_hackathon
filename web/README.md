@@ -1,4 +1,4 @@
-# ShuttleCoach
+# Serve
 
 A private badminton coaching staff. One phone video goes in. Out come the shuttle's 3D flight, shot speeds, heat zones,
 coaching advice and a training plan. The coaches are **Muse Glimmer**, Meta's open-weights model, running on a GPU
