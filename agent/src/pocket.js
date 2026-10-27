@@ -5,8 +5,7 @@
 // optionally, typing(id).
 import * as store from "./store.js";
 import { readClub } from "./club.js";
-import { reply, learn, COACHES } from "./coach.js";
-import { factSheet } from "./facts.js";
+import { reply, learn } from "./coach.js";
 import * as evolve from "./evolve.js";
 import * as life from "./life.js";
 import * as bodylog from "./body.js";
@@ -16,18 +15,11 @@ import { helpers } from "./play.js";
 
 export const HELP = `I'm your Serve agent, here 24 hours a day. I line up games at the times you usually play, with the people you play best with, and agree them with their agents; you just say yes. Send /autopilot to have me plan this week now.
 Just write to me: your schedule ("club training Wed 19:00-21:00"), how a game went ("played two hours with Leo"), or what hurts ("my right knee is sore after jumping"). I keep the record and plan your games around it. Share your health app's export (Apple Health, Google Fit) or a GPX, TCX or CSV file here and I'll file your workouts.
-/autopilot plan my week · /courts basketball near Da'an Park: free courts nearby, judged from their reviews · /body your body log · /report your body report · /week calendar · /log a session · /coach lin|kai|ren|ada|head your coaches · /forget delete everything I stored about you`;
+/autopilot plan my week · /courts basketball near Da'an Park: free courts nearby, judged from the map and the forecast · /body your body log · /report your body report · /week calendar · /log a session · /forget delete everything I stored about you`;
 
-export function planText(plan, today = null) {
-  if (!plan) return "No plan yet. Your coaches will send one after the next round table.";
-  const days = today ? plan.days.filter((d) => d.d === today) : plan.days;
-  const lines = days.map((d) => `${d.d}: ${d.blocks.length ? d.blocks.map(([who, min, t]) => `${t} (${min} min, ${COACHES[who]?.name ?? who})`).join("; ") : "rest"}`);
-  return `${today ? "Today's training" : `Training plan · ${plan.event ?? ""}`}\n${plan.goals?.length && !today ? "Goals:\n" + plan.goals.map((g) => `• ${g}`).join("\n") + "\n\n" : ""}${lines.join("\n")}`;
-}
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export function todayText(p, now = new Date()) {
   const ev = life.today(p, now);
-  return `${planText(p.plan, DAYS[now.getDay()])}${ev.length ? `\n\nIn your calendar today:\n${ev.map((e) => `• ${life.evText(e)}`).join("\n")}` : ""}`;
+  return ev.length ? `In your calendar today:\n${ev.map((e) => `• ${life.evText(e)}`).join("\n")}` : "Nothing in your calendar today. Send /autopilot and I'll line up a game.";
 }
 
 // the body log, the player's games and their health-app workouts, organized (body.js)
@@ -48,8 +40,7 @@ export async function reportText(p) {
 
 export function createPocket({ name: app, send, typing = async () => {}, onAutopilot = null }) {
   const welcome = (name) => {
-    const s = factSheet("A");
-    return `Hi ${name}, you're linked to ${s.name}'s coaching staff for ${s.event}.\n\nOnly these text messages pass through ${app}; match video and analysis stay on the coaching station.\n\n${HELP}`;
+    return `Hi ${name}, you're linked to Serve, your sports agent.\n\nOnly these messages pass through ${app}; your videos and health data stay on your own server.\n\n${HELP}`;
   };
 
   async function handle(id, name, raw) {
@@ -59,8 +50,7 @@ export function createPocket({ name: app, send, typing = async () => {}, onAutop
     // the first message links the chat: no command needed
     if (!store.get(id)) { store.link(id, name); await send(id, welcome(name)); if (/^(hi|hello|hey|get started|你好)\b/i.test(text)) return; }
     const p = store.get(id);
-    if (text.startsWith("/forget")) { store.forget(id); return send(id, "Done: your memories, messages, plan, kitchen list, calendar and training log are deleted from the station. Send /start to begin again."); }
-    if (text.startsWith("/plan")) return send(id, planText(p.plan));
+    if (text.startsWith("/forget")) { store.forget(id); return send(id, "Done: your memories, messages, calendar, games, body log and health data are deleted from the server. Send /start to begin again."); }
     // the Autopilot, asked for in so many words: it plans the week and comes back with games to approve
     if (text.startsWith("/autopilot") || /\b(line up|find me|get me|book me)\b.{0,20}\b(games?|matches)\b|\bplan my week\b/i.test(text)) {
       if (/\b(off|stop)\b/i.test(text)) { store.setPref(id, "autopilot", false); return send(id, "Autopilot is off. I won't line up games until you send /autopilot again."); }
@@ -75,41 +65,19 @@ export function createPocket({ name: app, send, typing = async () => {}, onAutop
     if (text.startsWith("/courts")) return courts(id, text.replace(/^\/courts\S*\s*/, ""));
     // what hurts (and nothing about a finished session): filed in the body log, and the games planned around it
     if (bodylog.about(text) && !/\b(played|trained|ran|did|session|game|match|minutes?|min|hours?)\b/i.test(text) && !text.startsWith("/")) return bodyLog(id, text);
-    if (text.startsWith("/week") || text.startsWith("/schedule")) return send(id, life.weekText(p, p.plan));
+    if (text.startsWith("/week") || text.startsWith("/schedule")) return send(id, life.weekText(p));
     if (text.startsWith("/today")) return send(id, todayText(p));
-    if (text.startsWith("/pantry")) {
-      const arg = text.replace(/^\/pantry\S*\s*/, "").trim();
-      if (/^clear$/i.test(arg)) life.clearPantry(id);
-      else if (arg) {
-        const parts = arg.split(/[,，、\n]+/).map((x) => x.trim()).filter(Boolean);
-        life.removePantry(id, parts.filter((x) => x.startsWith("-")).map((x) => x.slice(1)));
-        life.addPantry(id, parts.filter((x) => !x.startsWith("-")));
-      }
-      return send(id, life.pantryText(store.get(id)));
-    }
-    if (text.startsWith("/coach")) {
-      const want = { lin: "tactics", kai: "technique", ren: "fitness", ada: "analyst", mei: "nutrition", head: "head" }[text.split(/\s+/)[1]?.toLowerCase()];
-      if (!want) return send(id, "Use /coach lin, kai, ren, ada, mei or head.");
-      store.setPref(id, "coach", want); return send(id, `${COACHES[want].name} will take your questions from now on.`);
-    }
     await typing(id).catch(() => {});
-    if (text.startsWith("/meal")) return answer(id, "What should I eat next, given my next session and the food I have at home?", "nutrition", text);
     if (text.startsWith("/summary")) return answer(id, "Give me a short summary of my last match and the one thing to work on.", null, text);
 
-    // free text (or /log): the local model files it as food, a calendar entry, a finished session, or a question
+    // free text (or /log): the local model files it as a calendar entry, a finished session, or a question
     const body = text.replace(/^\/log\S*\s*/, "");
     const r = await life.read(body).catch(() => ({ intent: "chat", items: [], events: [], log: {} }));
     if (text.startsWith("/log")) r.intent = "log";
-    if (r.intent === "pantry" && r.items.length) {
-      const added = life.addPantry(id, r.items);
-      await send(id, `Added to your kitchen: ${added.join(", ") || "(already there)"}. Send /meal any time and Coach Mei plans around it.`);
-      return learnFrom(id, text);
-    }
     if (r.intent === "event" && r.events.length) {
       const evs = life.addEvents(id, r.events);
       const sessions = evs.filter((e) => ["training", "match"].includes(e.kind) && e.start);
       await send(id, `In your calendar:\n${evs.map((e) => `• ${life.evText(e)}`).join("\n")}${sessions.length ? "\nI'll message you an hour before." : ""}\nSee the week with /week.`);
-      if (evs.some((e) => ["match", "exam", "travel"].includes(e.kind))) await answer(id, `I just added this to my calendar: ${evs.map(life.evText).join("; ")}. How should my training this week change around it? Two sentences.`, "head", text, false);
       return learnFrom(id, text);
     }
     if (r.intent === "log") {
@@ -127,28 +95,27 @@ export function createPocket({ name: app, send, typing = async () => {}, onAutop
       }
       // "knee felt fine": the body log hears it too
       if (bodylog.about(text)) { const b = await bodylog.read(text); if (b.entries.length) { store.update(id, (q) => { q.body.log.push(...b.entries); }); await send(id, bodylog.said(b.entries, organizeFor(store.get(id)))); } }
-      await answer(id, `I just finished this session: ${body}. Give me one short reaction and what to do next.`, l.pain ? "fitness" : null, text, false);
       return learnFrom(id, text);
     }
     return answer(id, text, null, text);
   }
 
-  // a coach reply, with its sources and 👍 / 👎; then learn anything durable the player said
+  // an answer from the player's agent, with its sources and 👍 / 👎; then learn anything durable the player said
   async function answer(id, ask, coach, original, learnAfter = true, extra = {}) {
     store.addTurn(id, "user", ask);
     const r = await reply({ text: ask, playerId: id, coach });
     store.addTurn(id, "assistant", r.text, { coach: r.coach, verified: r.verified.ok, cites: r.cites, evidence: r.evidence });
     const turn = store.get(id).history.length - 1;
     const sources = r.evidence?.length ? `\n\nSources: ${r.evidence.map((e) => `${e.id} ${e.cite}`).join("; ")}` : "";
-    // 👍 / 👎 under every reply: the coaches learn from it at the next reflection run
-    await send(id, `${r.coachName}: ${r.text}${sources}`, { feedback: turn, ...extra });
+    // 👍 / 👎 under every reply, kept as feedback on the answer
+    await send(id, `${r.text}${sources}`, { feedback: turn, ...extra });
     if (learnAfter) await learnFrom(id, original);
     return r;
   }
   async function learnFrom(id, text) {
     if (text.startsWith("/")) return;
     const learned = await learn(id, text);
-    if (learned.length) await send(id, `(Noted for your coaches: ${learned.join("; ")}. Send /forget to delete.)`);
+    if (learned.length) await send(id, `(Noted: ${learned.join("; ")}. Send /forget to delete.)`);
   }
   // a reply the gateway starts itself (a reminder before a session): the same agent, no learning from it
   const answerFor = (id, ask, coach, extra) => answer(id, ask, coach, "/", false, extra);

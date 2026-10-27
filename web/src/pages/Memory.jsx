@@ -30,8 +30,8 @@ export default function Memory() {
       <header className="report-head">
         <div>
           <span className="tag">Player memory</span>
-          <h1 className="h1">What your coaches remember about you</h1>
-          <p className="muted">Goals, injuries, routines and past sessions. Every coach looks up the most relevant entries before it answers,
+          <h1 className="h1">What your agent remembers about you</h1>
+          <p className="muted">Goals, injuries, routines and past sessions. Your agent looks up the most relevant entries before it answers,
             so advice adapts to you over time. Stored on this device only.</p>
         </div>
       </header>
@@ -51,7 +51,7 @@ export default function Memory() {
           </section>
 
           <details className="disclose">
-            <summary>Test what a coach would recall <span className="muted">type a question</span></summary>
+            <summary>Test what your agent would recall <span className="muted">type a question</span></summary>
             <div className="disclose-body">
               <input className="mem-q" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Question to look up in memory" />
               <ol className="mem-hits">

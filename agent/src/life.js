@@ -1,7 +1,6 @@
-// The 24-hour coach in Messenger: what is in the player's kitchen, their schedule and their training log. Free text
-// is read by the local model into a small JSON action ("I have club training Wed 19:00-21:00" -> an event); the
-// coaches then see the pantry, the week and the recent sessions in every reply, and the gateway sends reminders
-// before a session and a check-in in the evening.
+// Your agent in Messenger: the player's schedule and their training log. Free text is read by the local model into a
+// small JSON action ("I have club training Wed 19:00-21:00" -> an event); the agent then sees the week and the recent
+// sessions in every answer, and the gateway sends reminders before a session and a check-in in the evening.
 import { chat } from "./llm.js";
 import * as store from "./store.js";
 
@@ -15,14 +14,13 @@ const json = (t) => { try { return JSON.parse((t.match(/\{[\s\S]*\}/) || ["{}"])
 // the next 8 days with their dates, so the model can resolve "Wednesday" or "tomorrow" without arithmetic
 const calendar = (now = new Date()) => Array.from({ length: 8 }, (_, k) => { const d = new Date(now); d.setDate(d.getDate() + k); return `${k === 0 ? "today" : k === 1 ? "tomorrow" : DAYS[d.getDay()]} = ${DAYS[d.getDay()]} ${ymd(d)}`; }).join("; ");
 
-const PROMPT = (now) => `You file messages from a badminton player for their coaching staff. Now: ${DAYS[now.getDay()]} ${ymd(now)} ${hm(now)}. Dates: ${calendar(now)}.
+const PROMPT = (now) => `You file messages from a player for their sports agent. Now: ${DAYS[now.getDay()]} ${ymd(now)} ${hm(now)}. Dates: ${calendar(now)}.
 Return one JSON object only, no prose:
-{"intent": "pantry" | "event" | "log" | "chat",
- "items": ["food the player says they have at home, short English names"],
+{"intent": "event" | "log" | "chat",
  "events": [{"date": "YYYY-MM-DD", "start": "HH:MM", "end": "HH:MM or empty", "title": "short", "kind": "training" | "match" | "exam" | "travel" | "other"}],
  "log": {"date": "YYYY-MM-DD", "minutes": number or 0, "what": "what they trained", "pain": "any pain or soreness they mention, or empty"}}
-pantry = they list food they have or bought. event = a plan in their calendar (training, match, exam, trip). log = a training session they already did. chat = anything else, including questions about food or training.
-Examples: "club training Wednesday 19:00-21:00" -> event; "exam on Friday" -> event; "did 1 hour of smash practice" -> log; "bought eggs and milk" -> pantry; "what should I eat tonight?" -> chat.
+event = a plan in their calendar (training, match, exam, trip). log = a training session or game they already did. chat = anything else.
+Examples: "club training Wednesday 19:00-21:00" -> event; "exam on Friday" -> event; "did 1 hour of smash practice" -> log; "how many net errors did I make?" -> chat.
 Use 24-hour times. Leave unused fields empty.`;
 
 // cues a 4B model sometimes misses: a day or time with a session word is a calendar entry; past tense with a
@@ -36,7 +34,7 @@ const minutesIn = (t) => { const m = t.match(/(\d+(?:\.\d+)?)\s*(hours?|hrs?|h\b
 export async function read(text, now = new Date()) {
   const r = await chat([{ role: "system", content: PROMPT(now) }, { role: "user", content: text }], { maxTokens: 220, temperature: 0 });
   const j = json(r.text);
-  const out = { intent: ["pantry", "event", "log", "chat"].includes(j.intent) ? j.intent : "chat", items: (j.items || []).filter((x) => typeof x === "string" && x.trim()),
+  const out = { intent: ["event", "log", "chat"].includes(j.intent) ? j.intent : "chat",
     events: (j.events || []).filter((e) => /^\d{4}-\d\d-\d\d$/.test(e?.date || "")), log: j.log || {} };
   const question = /\?|？|嗎|什麼|怎麼|how|what|should|can i/i.test(text);
   if (out.intent === "chat" && !question && PAST.test(text) && DURATION.test(text)) out.intent = "log";
@@ -54,15 +52,6 @@ List the calendar entries in the message as a JSON array only: [{"date": "YYYY-M
   try { return (JSON.parse((r.text.match(/\[[\s\S]*\]/) || ["[]"])[0]) || []).filter((e) => /^\d{4}-\d\d-\d\d$/.test(e?.date || "")); } catch { return []; }
 }
 
-// --- pantry --------------------------------------------------------------------------------------------------------
-export function addPantry(id, items) {
-  const p = store.get(id), have = new Set(p.pantry.map((x) => x.item.toLowerCase()));
-  const fresh = items.map((x) => x.trim().toLowerCase()).filter((x) => x && !have.has(x));
-  store.update(id, (q) => { q.pantry.push(...fresh.map((item) => ({ item, at: Date.now() }))); q.pantry = q.pantry.slice(-60); });
-  return fresh;
-}
-export const removePantry = (id, items) => store.update(id, (q) => { const out = new Set(items.map((x) => x.trim().toLowerCase())); q.pantry = q.pantry.filter((x) => !out.has(x.item)); });
-export const clearPantry = (id) => store.update(id, (q) => { q.pantry = []; });
 
 // --- schedule ------------------------------------------------------------------------------------------------------
 export function addEvents(id, events) {
@@ -99,17 +88,12 @@ export function context(p, now = new Date()) {
 THE PLAYER'S WEEK (their calendar):
 ${up.map((e) => `- ${evText(e)}`).join("\n") || "- (nothing entered)"}
 TRAINING THEY LOGGED IN THE LAST 7 DAYS:
-${w.logs.map((l) => `- ${l.date}: ${l.what}${l.minutes ? `, ${l.minutes} min` : ""}${l.pain ? `, pain: ${l.pain}` : ""}`).join("\n") || "- (nothing logged)"}
-FOOD THEY HAVE AT HOME:
-${p.pantry.map((x) => x.item).join(", ") || "(not told yet)"}`;
+${w.logs.map((l) => `- ${l.date}: ${l.what}${l.minutes ? `, ${l.minutes} min` : ""}${l.pain ? `, pain: ${l.pain}` : ""}`).join("\n") || "- (nothing logged)"}`;
 }
-export const pantryText = (p) => (p.pantry.length ? `In your kitchen (${p.pantry.length}): ${p.pantry.map((x) => x.item).join(", ")}.\nAdd with /pantry eggs, rice · remove with /pantry -eggs · /pantry clear` : "Your kitchen list is empty. Send /pantry eggs, tofu, rice (or just tell me what you bought) and I'll plan meals around training with it.");
-export function weekText(p, plan, now = new Date()) {
+export function weekText(p, now = new Date()) {
   const up = upcoming(p, 7, now), w = week(p, now);
-  const planToday = plan?.days?.find((d) => d.d === DAYS[now.getDay()]);
   return [`This week`,
     up.length ? up.map((e) => `• ${evText(e)}`).join("\n") : "• Nothing in your calendar. Tell me your sessions, matches and exams, e.g. \"club training Wed 19:00-21:00\".",
-    planToday ? `\nToday's plan: ${planToday.blocks.length ? planToday.blocks.map(([, min, t]) => `${t} (${min} min)`).join("; ") : "rest"}` : "",
     `\nLogged in the last 7 days: ${w.sessions} session${w.sessions === 1 ? "" : "s"}${w.minutes ? `, ${w.minutes} min` : ""}${w.pain.length ? ` · pain noted: ${w.pain.map((l) => l.pain).join("; ")}` : ""}`].join("\n");
 }
 export { evText };

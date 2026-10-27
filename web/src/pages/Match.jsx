@@ -334,7 +334,7 @@ function Fatigue({ m, p }) {
         <p className="tiny muted">Rolling 10-rally averages below. A tiring player recovers less (distance from base rises), needs more speed and makes more errors; a shorter time between shots means the rally is getting faster.</p>
       </div>
       <div className="panel span2 riskwatch">
-        <h3 className="panel-h">Load and injury-risk watch · Coach Ren</h3>
+        <h3 className="panel-h">Load watch</h3>
         <div className="risk-grid">
           <div>
             <h4>Watch list</h4>

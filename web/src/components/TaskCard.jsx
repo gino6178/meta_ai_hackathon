@@ -1,11 +1,9 @@
 import Icon from "./Icon.jsx";
-import Avatar from "../coaches/Avatar.jsx";
-import { coachById } from "../coaches/personas.js";
 import { dismiss, plain } from "../tasks.js";
 import Mark from "./Mark.jsx";
 
 // One job the agent did or is doing: what was asked, where it stands, and the trail of steps behind it.
-const JOB = { play: "Play", quests: "Quests", night: "Club night", ask: "Coach", lookup: "Your match", match: "Best match", talk: "Agent to agent", autopilot: "Autopilot" };
+const JOB = { play: "Play", quests: "Quests", night: "Club night", ask: "Your agent", lookup: "Your match", match: "Best match", talk: "Agent to agent", autopilot: "Autopilot" };
 export function ago(t) {
   const s = Math.round((Date.now() - t) / 1000);
   return s < 45 ? "just now" : s < 3600 ? `${Math.round(s / 60)} min ago` : s < 86400 ? `${Math.round(s / 3600)} h ago` : `${Math.round(s / 86400)} d ago`;
@@ -19,14 +17,14 @@ function action(t) {
 }
 
 export default function TaskCard({ t, steps = 3 }) {
-  const c = t.coach && coachById(t.coach), last = t.steps.at(-1), more = Math.max(0, t.steps.length - steps);
+  const last = t.steps.at(-1), more = Math.max(0, t.steps.length - steps);
   const said = ["play", "ask", "lookup"].includes(t.kind);
   return (
     <article className={`task ${t.state}`} aria-label={`${JOB[t.kind] || "Task"}: ${t.title}`}>
-      <span className={`task-av ${t.state}`} aria-hidden="true">{c ? <Avatar coach={c} size={40} /> : <Mark size={22} />}</span>
+      <span className={`task-av ${t.state}`} aria-hidden="true"><Mark size={22} /></span>
       <div className="task-body">
         <header>
-          <b>{c ? c.name : JOB[t.kind] || "Agent"}</b>
+          <b>{JOB[t.kind] || "Agent"}</b>
           <span className={`task-state ${t.state}`}>{t.state === "running" ? "Working" : t.state === "needs" ? "Needs you" : t.state === "failed" ? "Couldn't finish" : "Done"}</span>
           <span className="tiny muted">{ago(t.finished || t.started)}</span>
           <button className="icon-btn sm task-x" aria-label="Dismiss" onClick={() => dismiss(t.id)}><Icon name="close" size={14} /></button>

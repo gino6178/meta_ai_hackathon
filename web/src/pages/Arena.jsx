@@ -198,7 +198,7 @@ export function Challenges({ club, members, r, rec, g, you, me }) {
     const res = { id: x.id, vs, partner: x.partner, won: x.won, score: x.score.trim(), at: Date.now(), gap: Math.round(theirs - mine), d, booked: x.booked || 90, played: +x.played || x.booked || 90, start: x.start, sport: x.sport };
     patch((s) => ({ ...s, results: [...s.results, res] }));
     const names = vs.map((id) => first(byId[id].name)).join(" and ");
-    postToClub({ kind: "result", coach: "analyst", text: `${x.won ? "Beat" : "Lost to"} ${names}${x.partner ? ` with ${first(byId[x.partner].name)}` : ""}${res.score ? ` ${res.score}` : ""} (${d > 0 ? "+" : ""}${d} club rating).`, reply: x.won ? (res.gap >= 100 ? "A win against a higher rating: that is the biggest jump the table gives." : "Good win. Log what worked while you still remember it.") : "Close games against a higher rating still move you forward. Ask me what decided it." });
+    postToClub({ kind: "result", text: `${x.won ? "Beat" : "Lost to"} ${names}${x.partner ? ` with ${first(byId[x.partner].name)}` : ""}${res.score ? ` ${res.score}` : ""} (${d > 0 ? "+" : ""}${d} club rating).` });
     setNote(`${x.won ? "Win" : "Result"} saved: your rating ${d > 0 ? "goes up" : "goes down"} ${Math.abs(d)} to ${r.you + d}, and it is posted to the club feed.`);
     setRep(null);
   };

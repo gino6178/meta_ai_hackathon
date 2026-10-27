@@ -1,16 +1,16 @@
-// End-to-end test of the agent and coaches in Facebook Messenger: a fake Graph API on this machine, the real gateway
-// pointed at it, and a scripted player who messages the Page through the signed webhook. Checks linking, grounded
-// replies (verifier), learning a memory, the round-table plan, the calendar, the Autopilot (it lines up the week with
-// the other players' agents and asks with buttons; a tap books), the reminder before the game, the check-in after it
-// (a game that ran past its booking is learned), and /forget.
-//   node test/e2e.mjs [transcript.json] [plan.json]
-// With a transcript path, the whole conversation is saved (for the demo video); with a plan, that plan is pushed.
+// End-to-end test of your agent in Facebook Messenger: a fake Graph API on this machine, the real gateway pointed at
+// it, and a scripted player who messages the Page through the signed webhook. Checks linking, the calendar, the
+// Autopilot (it lines up the week with the other players' agents and asks with buttons; a tap books), the reminder
+// before the game, the check-in after it (a game that ran past its booking is learned), the body log, a health export
+// shared to the chat, the body check-in with buttons, /report, a grounded answer (verifier), feedback and /forget.
+//   node test/e2e.mjs [transcript.json]
+// With a transcript path, the whole conversation is saved (for the demo video).
 import http from "node:http";
 import crypto from "node:crypto";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 
-const [OUT, PLAN] = process.argv.slice(2);
+const [OUT] = process.argv.slice(2);
 const GRAPH_PORT = +(process.env.GRAPH_PORT || 18796), GW_PORT = +(process.env.GW_PORT || 18789), PSID = "4242", SECRET = "test-secret", sent = [], log = [];
 const t0 = Date.now(), at = () => +((Date.now() - t0) / 1000).toFixed(1);
 const SAMPLE = "../web/public/data/sample/serve_sample_health_export.zip";
@@ -22,7 +22,7 @@ const graph = http.createServer((req, res) => {
     res.writeHead(200, { "content-type": "application/json" });
     if (body.message?.text) {
       sent.push(body.message.text);
-      log.push({ from: "coach", text: body.message.text, at: at(), buttons: body.message.quick_replies?.map((q) => q.title), payloads: body.message.quick_replies?.map((q) => q.payload), tag: body.tag });
+      log.push({ from: "agent", text: body.message.text, at: at(), buttons: body.message.quick_replies?.map((q) => q.title), payloads: body.message.quick_replies?.map((q) => q.payload), tag: body.tag });
     }
     res.end(JSON.stringify({ recipient_id: body.recipient?.id, message_id: `m${sent.length}` }));
   });
@@ -52,7 +52,7 @@ async function say(text, timeout = 240000) {
   console.log(`\n> ${text}  (${((Date.now() - s) / 1000).toFixed(1)} s)\n` + got.map((g) => "< " + g).join("\n"));
   return got;
 }
-// a message whose answer comes in parts (a log, then the body log, then a coach): wait for the part that matters
+// a message whose answer comes in parts (a log, then the booking it ran past, then the body log): wait for the part that matters
 async function sayUntil(text, rx, timeout = 180000) {
   const before = sent.length, got = await say(text, timeout);
   for (const s = Date.now(); !sent.slice(before).some((t) => rx.test(t)) && Date.now() - s < timeout;) await wait(300);
@@ -76,11 +76,6 @@ try {
   expect(bad.status === 403, "an unsigned webhook call is refused");
 
   expect((await say("Hi"))[0].includes("linked"), "the first message links the chat");
-  const plan = PLAN ? JSON.parse(fs.readFileSync(PLAN, "utf8")) : { event: "Thailand Masters 2025", goals: ["Cut net errors to 8 or fewer"], days: [{ d: "Mon", blocks: [["technique", 25, "Net kill and net lift with a 30 cm margin"]] }, { d: "Tue", blocks: [] }] };
-  log.push({ from: "system", text: "The round table agreed the week", at: at() });
-  const n = await api("/api/notify", { plan });
-  await wait(500);
-  expect(n.sent?.length === 1 && sent[sent.length - 1].includes("round table"), "the round-table plan is pushed to the player");
 
   const wed = new Date(); do wed.setDate(wed.getDate() + 1); while (wed.getDay() !== 3);
   const wedYmd = `${wed.getFullYear()}-${String(wed.getMonth() + 1).padStart(2, "0")}-${String(wed.getDate()).padStart(2, "0")}`;
@@ -117,7 +112,7 @@ try {
   await api("/api/remind", { kind: "checkin" }); await wait(500);
   expect(sent.slice(before).some((t) => /How did today's session go/.test(t)), "the check-in after the game is sent");
   const mates = games[0]?.with?.map((w) => ({ leo: "Leo", hana: "Hana", tomas: "Tomás", kenji: "Kenji", noor: "Noor", yuki: "Yuki", ines: "Ines", priya: "Priya", ravi: "Ravi", aisha: "Aisha", sam: "Sam" })[w] || w) || ["Leo"];
-  const told = await sayUntil(`Played two hours with ${mates.slice(0, 3).join(", ")}, way past the booking, knee felt fine`, /^Coach /);
+  const told = await sayUntil(`Played two hours with ${mates.slice(0, 3).join(", ")}, way past the booking, knee felt fine`, /Logged: knee/);
   me = (await api("/api/players"))[0];
   expect(me.logs.some((l) => l.minutes >= 110), "the game is logged with how long it ran");
   expect(told.some((t) => /past the booking/.test(t)) && me.games.length >= 1, "a game that ran past its booking is learned: the group comes first next time");
@@ -139,7 +134,7 @@ try {
   before = sent.length;
   log.push({ from: "system", text: "Two days later", at: at() });
   await api("/api/body/followups?all=1", {}); await wait(800);
-  const checkin = log.filter((x) => x.from === "coach").slice(-1)[0];
+  const checkin = log.filter((x) => x.from === "agent").slice(-1)[0];
   expect(/How is your right knee today\?/.test(checkin?.text || "") && checkin.payloads?.includes("bd:knee:right:same"), "the check-in asks about the right knee, with buttons");
   before = sent.length;
   log.push({ from: "player", text: "About the same", at: at(), tap: true });
@@ -150,12 +145,13 @@ try {
   const net = await say("How many net errors did I make in the match?");
   expect(net.some((t) => /14/.test(t)), "the answer uses the real figure (14 net errors)");
 
-  before = log.length;
-  await hook({ message: { mid: "q1", text: "👍 Helpful", quick_reply: { payload: `fb:${me.history.length - 1}:1` } } }); await wait(800);
-  expect(sent.at(-1).includes("noted"), "a 👍 is taken as feedback for the coaches, not a new question");
+  before = sent.length;
+  me = (await api("/api/players"))[0];
+  await hook({ message: { mid: "q1", text: "👍 Helpful", quick_reply: { payload: `fb:${me.history.length - 1}:1` } } }); await wait(1500);
+  expect(sent.slice(before).some((t) => /^Thanks, noted/.test(t)), "a 👍 is taken as feedback on the answer, not a new question");
   const all = (await api("/api/players"))[0].history.filter((h) => h.role === "assistant");
   console.log("  replies verified:", all.filter((h) => h.verified).length, "of", all.length);
-  expect(all.every((h) => h.verified), "every coach reply passed the number verifier");
+  expect(all.every((h) => h.verified), "every answer passed the number verifier");
   if (OUT) fs.writeFileSync(OUT, JSON.stringify(log, null, 1));
   expect((await say("/forget"))[0].includes("deleted"), "/forget deletes the player");
   expect((await api("/api/players")).length === 0, "nothing is left after /forget");

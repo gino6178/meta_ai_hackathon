@@ -62,10 +62,10 @@ export function answer(raw, { m, data }) {
   }
   if (has(/heat ?map|beat|beating|losing|defen[cs]e|weak/)) {
     const t = tactics(data.outcomes, "A");
-    return { say: `${m.names.B}'s winners land most in your ${t.weak[0][0]}: ${t.weak[0][1]} of ${t.conceded}. Coach Lin is flashing it on the map.`, go: "coach/tactics" };
+    return { say: `${m.names.B}'s winners land most in your ${t.weak[0][0]}: ${t.weak[0][1]} of ${t.conceded}. It is on the heat map.`, go: "match" };
   }
-  if (has(/round ?table|training|plan|schedule|week/)) return { say: "Calling the round table. The coaches will agree your week.", go: "roundtable" };
-  if (has(/muscle|gym|strength|fitness|body/)) return { say: "Coach Ren will show the muscles to train on the 3D body.", go: "coach/fitness" };
+  if (has(/plan|schedule|week|line up/)) return { say: "Starting the Autopilot: it lines up your week with the people you play best with.", go: "autopilot?run=1" };
+  if (has(/muscle|body|hurt|sore|pain/)) return { say: "Opening your body log: tell me what hurts.", go: "body" };
   if (has(/habit|pattern|scout|opponent/)) return { say: `Opening the scouting report on ${m.names.B}.`, go: "scout" };
   if (has(/\blive\b|court ?side/)) return { say: "Switching to live mode.", go: "live" };
   if (has(/memory|remember/)) return { say: "Opening your player memory.", go: "memory" };

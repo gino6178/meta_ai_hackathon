@@ -38,9 +38,9 @@ export default function Report({ data, video }) {
         <div>
           <span className="tag">Rally 3D · {data.event}</span>
           <h1 className="h1">{data.players.near} <span className="vs">vs</span> {data.players.far}</h1>
-          <p className="muted">Coaching the near-side player · rally {data.rallyId} replayed in 3D · {match.n} shots in the match database</p>
+          <p className="muted">The near-side player · rally {data.rallyId} replayed in 3D · {match.n} shots in the match database</p>
         </div>
-        <div className="cta-row"><button className="btn primary" onClick={() => go("coaches")}>Talk to your coaches</button><button className="btn ghost" onClick={() => go("analyze")}>Analyze another video</button></div>
+        <div className="cta-row"><button className="btn primary" onClick={() => go("match?tab=reel")}>Make my highlight reel</button><button className="btn ghost" onClick={() => go("analyze")}>Analyze another video</button></div>
       </header>
 
       <section id="replay" className="block">

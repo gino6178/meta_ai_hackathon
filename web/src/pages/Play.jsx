@@ -82,7 +82,6 @@ function Booking({ t, you }) {
       <div className="play-actions">
         {st === "confirmed" && <a className="btn primary" href={ics(b)} download={`serve_${b.id}.ics`}><Icon name="download" size={16} />Add to calendar</a>}
         {st === "confirmed" && <a className="btn ghost" href={shareLinks(`Badminton ${o.format}, ${o.day} ${o.start}-${o.end} at ${o.venue.name}, court ${o.court}. NT$${o.each} each. With ${b.invites.filter((i) => i.status === "in").map((i) => first(i.name)).join(", ")}.`).whatsapp} target="_blank" rel="noopener noreferrer">Share to the group chat</a>}
-        {st === "confirmed" && <a className="btn ghost" href="#/coach/fitness">Ask Coach Ren how to warm up</a>}
         {st !== "cancelled" && <button className="btn ghost" onClick={() => cancelFor(t.id).catch((x) => setErr(`Could not cancel (${x.message}).`))}>Cancel booking</button>}
       </div>
       {said.length > 0 && st !== "cancelled" && (

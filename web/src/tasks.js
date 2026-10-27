@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { agentPlay, agentQuests, agentClubPlan, agentChat, agentBook, agentBooking, agentCancel, agentBest, agentTalk, agentAutopilot, agentAutopilotAnswer } from "./agent.js";
-import { coachById } from "./coaches/personas.js";
 import { tactics } from "./coaches/analysis.js";
 import { memory } from "./memory.js";
 import { readGame, patchGame, isoWeek } from "./club/game.js";
@@ -26,7 +25,7 @@ function set(next) {
   try { localStorage.setItem(KEY, JSON.stringify(list)); } catch { /* private mode: this visit only */ }
   subs.forEach((f) => f(list));
 }
-// coach replies cite facts like [F12]; the cards and notices show the sentence without the tags
+// answers cite facts like [F12]; the cards and notices show the sentence without the tags
 export const plain = (t) => String(t ?? "").replace(/\s*\[(?:F|E)\d+(?:,\s*(?:F|E)?\d+)*\]/g, "");
 export function update(id, patch) { set(list.map((t) => (t.id === id ? { ...t, ...(typeof patch === "function" ? patch(t) : patch) } : t))); }
 export const taskById = (id) => list.find((t) => t.id === id) || null;
@@ -38,15 +37,15 @@ export function useTasks() {
 }
 
 // what every job needs to know about the player: the zone they lose most points in, their level, and a health limit
-// from what they told the coaches
+// from what they told their agent
 const hurtIn = (texts) => texts.some((t) => /knee|ankle|膝|腳踝/i.test(t) && /sore|pain|hurt|injur|avoid jump|痛|痠|傷/i.test(t));
 export function playerOf(data) {
   const t = tactics(data.outcomes, "A");
   return { weak: t.weak[0][0], level: "B", limit: hurtIn(memory.all().map((m) => m.text)) ? "no jump landings" : null };
 }
 
-// which job a sentence is: a highlight reel, play (court, people, challenge), quests, club night, the round table, or
-// a coach question
+// which job a sentence is: a highlight reel, the Autopilot, courts, the body log, play (court, people, challenge),
+// quests, club night, or a question
 export function intentOf(text) {
   if (/highlight|reel|instagram|facebook post|post (it|my|on)|精華|剪片/i.test(text)) return "highlight";
   if (/autopilot|plan my week|keep me playing|line up (my )?(games|week)|自動安排|幫我安排/i.test(text)) return "autopilot";
@@ -58,9 +57,9 @@ export function intentOf(text) {
   if (/want to play|book|court|find a game|game (on|this|next)|play (on|this|next|tomorrow|tonight|with)|doubles|singles|spar|challenge|rematch|約|打球|訂場|找人|單打|雙打|單挑|陪練|對打/i.test(text)) return "play";
   if (/quest|gamif|任務/i.test(text)) return "quests";
   if (/club night|團練|社團練習/i.test(text)) return "night";
-  if (/round ?table|plan my (training )?week|training plan|週計畫|訓練計畫/i.test(text)) return "roundtable";
   return "ask";
 }
+// the area a question is about, so the answer is grounded in that area's facts
 export const coachFor = (text) =>
   /warm|knee|ankle|gym|strength|fitness|tired|load|injur|stretch|recover|熱身|膝|體能|恢復/i.test(text) ? "fitness"
   : /smash|grip|stroke|technique|racket|clear|drop|net shot|serve|技術|殺球|發球/i.test(text) ? "technique"
@@ -158,7 +157,7 @@ function credit(b) {
   });
   if (!fresh) return;
   const names = b.invites.filter((i) => i.status === "in").map((i) => first(i.name));
-  postToClub({ kind: "game", coach: "tactics", text: `Booked ${b.option.format} on ${b.option.day} ${b.option.start} at ${b.option.venue.name} with ${names.join(", ")}.`, reply: "Good game plan: use it to test this week's quest." });
+  postToClub({ kind: "game", text: `Booked ${b.option.format} on ${b.option.day} ${b.option.start} at ${b.option.venue.name} with ${names.join(", ")}.` });
 }
 
 // ---- the Autopilot: your agent runs the week, then asks once ---------------------------------------------------
@@ -232,19 +231,19 @@ export function startNight(you) {
   return id;
 }
 
-// ---- a question for one coach, on Muse Glimmer, numbers checked --------------------------------------------------
-export function startAsk(text, coach = coachFor(text)) {
-  const c = coachById(coach);
-  const id = create("ask", () => ({ title: text, coach, href: `coach/${coach}` }));
+// ---- a question about your game, answered by your agent on Muse Glimmer, numbers checked -------------------------
+const AREA = { fitness: "fitness and load", technique: "technique", analyst: "your data", tactics: "tactics" };
+export function startAsk(text, area = coachFor(text)) {
+  const id = create("ask", () => ({ title: text, href: "match" }));
   run(id, async (on) => {
-    on({ type: "step", step: `Handed it to ${c.name}`, tool: "route", detail: `${c.role}: the coach agent for this question` });
-    on({ type: "working", step: `${c.name} is answering on Muse Glimmer` });
-    const r = await agentChat(coach, text, []);
+    on({ type: "step", step: `Looked at ${AREA[area]}`, tool: "route", detail: "the facts from your match in that area are the only numbers it may use" });
+    on({ type: "working", step: "Your agent is answering on Muse Glimmer" });
+    const r = await agentChat(area, text, []);
     on({ type: "step", step: "Recalled your notes", tool: "memory", detail: r.evidence?.length ? `${r.evidence.length} note${r.evidence.length > 1 ? "s" : ""} from your memory and the knowledge base` : "nothing in your memory was needed" });
-    on({ type: "step", step: `${c.name} answered`, tool: "answer", detail: r.timing ? `Muse Glimmer, ${r.timing.seconds} s` : "Muse Glimmer", seconds: r.timing?.seconds });
-    on({ type: "step", step: "Checked every number", tool: "verify", detail: r.verified?.offline ? "the model was unavailable, so the coach used the checked summary" : r.verified?.rejected ? "a draft failed the check, so the coach used the checked summary" : `${r.verified?.numbers ?? 0} numbers, each matched to a fact from your match${r.tries > 1 ? ` (rewritten once)` : ""}` });
+    on({ type: "step", step: "Answered", tool: "answer", detail: r.timing ? `Muse Glimmer, ${r.timing.seconds} s` : "Muse Glimmer", seconds: r.timing?.seconds });
+    on({ type: "step", step: "Checked every number", tool: "verify", detail: r.verified?.offline ? "the model was unavailable, so it used the checked summary" : r.verified?.rejected ? "a draft failed the check, so it used the checked summary" : `${r.verified?.numbers ?? 0} numbers, each matched to a fact from your match${r.tries > 1 ? ` (rewritten once)` : ""}` });
     return r;
-  }, (r) => ({ state: "done", result: { text: r.text, coach }, summary: r.text }));
+  }, (r) => ({ state: "done", result: { text: r.text }, summary: r.text }));
   return id;
 }
 // an answer the match data gives straight away, without a model

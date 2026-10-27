@@ -7,19 +7,19 @@ import json, re, sys, html, os
 HERE = os.path.dirname(os.path.abspath(__file__))
 t = json.load(open(sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "build", "pocket_transcript.json"), encoding="utf-8"))
 clean = lambda s: re.sub(r"\s*\[(?:F|E)\d+\]", "", s).replace("·", "·").replace(" (training)", "").strip()
-coach = [x["text"] for x in t if x["from"] == "coach"]
+coach = [x["text"] for x in t if x["from"] in ("agent", "coach")]
 player = [x["text"] for x in t if x["from"] == "player"]
 find = lambda pred: next(x for x in coach if pred(x))
 
 # the Autopilot's week, booked with a tap; what hurts, filed; a health export shared to the chat; the check-in after
 onit = find(lambda x: x.startswith("On it"))
-ask = next(x for x in t if x["from"] == "coach" and x.get("buttons") and "Book" in " ".join(x["buttons"]))
+ask = next(x for x in t if x["from"] in ("agent", "coach") and x.get("buttons") and "Book" in " ".join(x["buttons"]))
 booked = find(lambda x: x.startswith("Booked:"))
 coming = find(lambda x: x.startswith("Coming up"))
 hurt_said = next(x for x in player if "knee is sore" in x)
 hurt = find(lambda x: x.startswith("Logged: right knee") and "doubles" in x)
 read = find(lambda x: x.startswith("Read your"))
-checkin = next(x for x in t if x["from"] == "coach" and x["text"].startswith("How is your"))
+checkin = next(x for x in t if x["from"] in ("agent", "coach") and x["text"].startswith("How is your"))
 after = [x for x in coach if x.startswith("Logged: right knee")][-1]
 # the first n lines of a message, as bubble HTML
 first = lambda s, n=2: "<br>".join([html.escape(l) for l in clean(s).split("\n") if l.strip()][:n])

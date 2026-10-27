@@ -1,5 +1,6 @@
-// A coach agent turn: pick the coach, ground it in the facts sheet and the player's memory, generate with the local
-// LLM, verify every number, and learn anything durable the player said. If the model is down, answer from facts.
+// One answer from the player's agent to a question about their game: pick the area it is about (tactics, technique,
+// fitness, data), ground it in that area's facts and the player's memory, generate with the local LLM, verify every
+// number, and learn anything durable the player said. If the model is down, answer from facts.
 import { chat } from "./llm.js";
 import { check } from "./verify.js";
 import { factSheet, factsText } from "./facts.js";
@@ -14,8 +15,6 @@ export const COACHES = {
   technique: { name: "Coach Kai", role: "stroke technique: net play, smashes, clears, errors", keys: ["net", "smash", "clear", "drop", "error", "technique", "grip", "殺球", "網前", "技術", "失誤"] },
   fitness: { name: "Coach Ren", role: "strength, conditioning, fatigue and injury risk", keys: ["tired", "fatigue", "knee", "ankle", "sore", "gym", "injur", "lunge", "膝", "累", "痠", "體能", "受傷"] },
   analyst: { name: "Coach Ada", role: "match data, habits and patterns", keys: ["data", "stat", "pattern", "habit", "percent", "數據", "習慣"] },
-  // in Messenger only: meals from what the player has at home, timed around their sessions
-  nutrition: { name: "Coach Mei", role: "nutrition and recovery: meals from the food the player has at home, timed around training", keys: ["eat", "food", "meal", "breakfast", "lunch", "dinner", "snack", "diet", "protein", "cook", "fridge", "吃", "餐", "食", "營養", "飲食", "冰箱", "煮"] },
 };
 
 const AREA = {
@@ -24,7 +23,6 @@ const AREA = {
   technique: ["errors", "errtypes", "net", "netgame", "pattern", "stretch"],
   fitness: ["load", "lunges", "kneedeep", "kneeright", "stretch"],
   analyst: ["read", "readpct", "stretch", "pattern", "zone", "points"],
-  nutrition: ["load", "lunges", "match"],
 };
 const scoped = (sheet, coachId) => (AREA[coachId] ? { ...sheet, facts: sheet.facts.filter((f) => AREA[coachId].includes(f.key)) } : sheet);
 
@@ -41,8 +39,7 @@ export function route(text, fallback = "head") {
 function system(coachId, sheet, player, evidence, ruleSet) {
   const c = COACHES[coachId];
   const mem = player?.memories?.length ? player.memories.slice(-12).map((m) => `- ${m.text}`).join("\n") : "- (nothing yet)";
-  const plan = player?.plan?.goals?.length ? player.plan.goals.map((g) => `- ${g}`).join("\n") : "- (no plan agreed yet)";
-  return `You are ${c.name}, the ${c.role}, on Serve, a badminton coaching staff of AI agents that runs on the player's own hardware.
+  return `You are the player's agent in Serve, a sports club app that runs on the player's own hardware. This question is about ${c.role}.
 You are talking with ${sheet.name} after their match.
 
 FACTS you may use (cite them like [F2]); these are the only numbers you may state:
@@ -51,12 +48,9 @@ ${factsText(scoped(sheet, coachId))}
 WHAT YOU REMEMBER ABOUT THE PLAYER:
 ${mem}
 
-THIS WEEK'S PLAN:
-${plan}
-
 ${life.context(player)}
 
-YOUR PLAYBOOK (rules your coaching staff has agreed; follow them):
+RULES YOU FOLLOW:
 ${ruleSet.map((r) => `- ${r.text}`).join("\n") || "- (none)"}
 
 EVIDENCE from sports-science papers (cite like [E14] when it supports your advice; these are other people's studies, never present their numbers as the player's):
@@ -70,12 +64,12 @@ Rules:
 - Never advise deep knee bends or jumping when the player reports knee or ankle pain; lower the load instead.
 - Reply in the language the player writes in (if they write Chinese, use Traditional Chinese as used in Taiwan), warm and direct, in 2 to 3 short sentences and under 80 words: what the data shows (with its number and fact id), why it matters for their game, and one concrete drill or action for this week.
 - Plan around their calendar: never schedule hard work on a match or exam day or just before one.
-- For food, build meals from FOOD THEY HAVE AT HOME and say when to eat them relative to their next session; give portions as palms, fists or cups, never grams or calories. No supplements, no weight-cutting.
+- Never give diet, nutrition or medical advice; for pain that lasts, suggest seeing a physio.
 - No markdown headings or tables.`;
 }
 
 const FALLBACK = (sheet, coachId) => {
-  const pick = { tactics: "zone", technique: "net", fitness: "load", analyst: "read", head: "points", nutrition: "load" }[coachId];
+  const pick = { tactics: "zone", technique: "net", fitness: "load", analyst: "read", head: "points" }[coachId];
   const f = sheet.facts.find((x) => x.key === pick) ?? sheet.facts[1];
   return `Here is the measured fact I can stand behind: ${f.text.replace(/\.$/, "")} [${f.id}].`;
 };
@@ -122,7 +116,7 @@ export async function learn(playerId, text) {
   if (!/\b(i|i'm|im|my|me)\b|我|膝|痠|痛|目標|每週|想要|喜歡/i.test(text)) return saved;
   try {
     const r = await chat([
-      { role: "system", content: "Extract durable facts a coach should remember about the player from their message: injuries or pain, goals, training schedule, availability, preferences. Return a JSON array of short English strings, or [] if none. JSON only." },
+      { role: "system", content: "Extract durable facts the player's sports agent should remember from their message: injuries or pain, goals, training schedule, availability, preferences. Return a JSON array of short English strings, or [] if none. JSON only." },
       { role: "user", content: text },
     ], { maxTokens: 120, temperature: 0 });
     const arr = JSON.parse((r.text.match(/\[[\s\S]*\]/) || ["[]"])[0]);

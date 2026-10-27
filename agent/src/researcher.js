@@ -7,7 +7,7 @@ import * as kb from "./kb.js";
 import * as store from "./store.js";
 import { factSheet } from "./facts.js";
 
-const AREAS = ["tactics", "technique", "fitness", "analyst", "nutrition"];
+const AREAS = ["tactics", "technique", "fitness", "analyst"];
 const BASE = [
   "badminton lunge knee joint loading",
   "badminton net shot technique accuracy training",
@@ -22,8 +22,7 @@ const nums = (s) => (String(s).match(/\d+(?:\.\d+)?/g) || []).map(Number);
 // small models sometimes return several arrays or loose lines: take every quoted string instead
 const strings = (t) => { const j = json(t, null); return Array.isArray(j) ? j.filter((x) => typeof x === "string") : [...t.matchAll(/"([^"\n]{6,120})"/g)].map((m) => m[1]); };
 const KEYS = { fitness: /knee|tendon|tendin|injur|fatigue|load|strength|muscle|lunge|landing|pain|recovery/i, tactics: /anticipat|tactic|decision|position|perceptual|opponent|strateg/i,
-  technique: /technique|stroke|smash|net shot|serve|grip|kinematic|racket|shuttle speed|accuracy/i, analyst: /notational|statistic|match analysis|performance indicator|data|pattern/i,
-  nutrition: /nutrition|diet|carbohydrate|protein intake|hydration|meal|glycogen|caffeine/i };
+  technique: /technique|stroke|smash|net shot|serve|grip|kinematic|racket|shuttle speed|accuracy/i, analyst: /notational|statistic|match analysis|performance indicator|data|pattern/i };
 const infer = (text) => Object.keys(KEYS).filter((a) => KEYS[a].test(text));
 kb.backfillAreas(infer);
 

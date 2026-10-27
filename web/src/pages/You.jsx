@@ -5,7 +5,7 @@ import { memory } from "../memory.js";
 import { readGame } from "../club/game.js";
 import { useTasks } from "../tasks.js";
 
-// You: the profile. Your matches and everything measured from them, your games, what the coaches remember.
+// You: the profile. Your matches and everything measured from them, your games, what your agent remembers.
 export default function You({ data }) {
   const tasks = useTasks();
   const [m, setM] = useState(null);
@@ -32,7 +32,7 @@ export default function You({ data }) {
           <dl className="you-stats">
             <div><dd>1</dd><dt>match</dt></div>
             <div><dd>{games}</dd><dt>{games === 1 ? "game booked" : "games booked"}</dt></div>
-            <div><dd>{notes}</dd><dt>{notes === 1 ? "note to the coaches" : "notes to the coaches"}</dt></div>
+            <div><dd>{notes}</dd><dt>{notes === 1 ? "note to your agent" : "notes to your agent"}</dt></div>
           </dl>
         </div>
         <a className="btn primary" href="#/analyze"><Icon name="plus" size={18} />Analyze a video</a>
@@ -67,8 +67,7 @@ export default function You({ data }) {
         <h2 id="o-h" className="sec-label">Your data</h2>
         <ul className="view-grid plain">
           <li><a href="#/body"><Icon name="heart" size={22} /><span><b>Body log</b><span className="tiny muted">What hurts, your health app, your trail and report</span></span></a></li>
-          <li><a href="#/memory"><Icon name="memory" size={22} /><span><b>Player memory</b><span className="tiny muted">What the coaches remember, and what to forget</span></span></a></li>
-          <li><a href="#/lab"><Icon name="verify" size={22} /><span><b>Lab</b><span className="tiny muted">How the coaches improve, with your approval</span></span></a></li>
+          <li><a href="#/memory"><Icon name="memory" size={22} /><span><b>Your memory</b><span className="tiny muted">What your agent remembers, and what to forget</span></span></a></li>
           <li><a href="#/about"><Icon name="info" size={22} /><span><b>About Serve</b><span className="tiny muted">How it works and what stays private</span></span></a></li>
         </ul>
       </section>

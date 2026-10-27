@@ -19,7 +19,7 @@ const UA = "Serve/0.1 (sports club app; hackathon demo)";
 const OVERPASS = (process.env.OVERPASS_URLS || "https://z.overpass-api.de/api/interpreter,https://lz4.overpass-api.de/api/interpreter,https://overpass-api.de/api/interpreter,https://maps.mail.ru/osm/tools/overpass/api/interpreter").split(",");
 let cache = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")) : {};
 const save = () => { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(cache)); };
-export const ready = () => ({ map: true, reviews: !!KEY, weather: true });
+export const ready = () => ({ map: true, google: !!KEY, googleLeft: googleLeft(), weather: true });
 
 // the OpenStreetMap sport tag for each sport, and whether a park is somewhere it is often played
 const OSM = { badminton: "badminton", tennis: "tennis", pickleball: "pickleball", "table tennis": "table_tennis", basketball: "basketball", volleyball: "volleyball|beachvolleyball", soccer: "soccer", football: "soccer" };
@@ -71,11 +71,16 @@ async function fromMap({ lat, lon, sport, radius }) {
   return places;
 }
 
-// 2: Google Maps reviews (only with a key; nothing is stored)
-const memo = new Map();
+// 2: Google Maps ratings and, where the key's plan includes them, reviews (only with a key; nothing is stored). A
+// Maps demo key has a small daily quota and returns no reviews: one call per search, and a daily cap
+// (GOOGLE_DAILY_LIMIT, default 90) after which the search carries on from the map and the forecast alone.
+const memo = new Map(), LIMIT = +(process.env.GOOGLE_DAILY_LIMIT || 90), used = { day: "", n: 0 };
+export const googleLeft = () => { const d = new Date().toISOString().slice(0, 10); if (used.day !== d) Object.assign(used, { day: d, n: 0 }); return KEY ? LIMIT - used.n : 0; };
 async function google(body) {
   const k = JSON.stringify(body);
   if (memo.has(k) && Date.now() - memo.get(k).at < 36e5) return memo.get(k).v;
+  if (googleLeft() <= 0) throw new Error("today's Google Maps quota is used up");
+  used.n++;
   const r = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST", signal: AbortSignal.timeout(20000),
     headers: { "content-type": "application/json", "X-Goog-Api-Key": KEY, "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.reviews,places.googleMapsUri,places.regularOpeningHours.weekdayDescriptions,places.types" },
@@ -100,7 +105,7 @@ export async function forecast(lat, lon, date, start) {
 }
 
 const outdoor = (p) => !(p.kind === "sports_centre" || p.kind === "sports_hall" || p.tags.indoor === "yes" || p.tags.covered === "yes" || p.tags.building);
-const tagWords = (p) => [p.tags.sport && `sport: ${p.tags.sport.replace(/;/g, ", ")}`, p.tags.hoops && `hoops: ${p.tags.hoops}`, p.tags.lit && `lights: ${p.tags.lit}`, p.tags.covered && `covered: ${p.tags.covered}`, p.tags.indoor && `indoor: ${p.tags.indoor}`,
+const tagWords = (p) => p.id.startsWith("google:") ? ["listed on Google Maps for this sport; OpenStreetMap has no tags for it"] : [p.tags.sport && `sport: ${p.tags.sport.replace(/;/g, ", ")}`, p.tags.hoops && `hoops: ${p.tags.hoops}`, p.tags.lit && `lights: ${p.tags.lit}`, p.tags.covered && `covered: ${p.tags.covered}`, p.tags.indoor && `indoor: ${p.tags.indoor}`,
   p.tags.surface && `surface: ${p.tags.surface}`, p.tags.access && `access: ${p.tags.access}`, p.tags.fee && `fee: ${p.tags.fee}`, p.tags.opening_hours && `opening hours: ${p.tags.opening_hours}`, `type: ${p.kind === "pitch" ? "outdoor court or field" : p.kind.replace("_", " ")}`].filter(Boolean);
 
 // rules: the judgement when the model is down or its reasons fail the check
@@ -178,24 +183,25 @@ export async function search({ lat, lon, sport = "basketball", date, start = "19
   tell({ step: "Found places on the map", tool: "map", detail: `${places.filter((p) => p.kind !== "park").length} ${sport} courts or centres and ${places.filter((p) => p.kind === "park").length} parks within ${(radius / 1000).toFixed(1)} km (OpenStreetMap)` });
   const courts = places.filter((p) => p.kind !== "park"), parks = places.filter((p) => p.kind === "park");
   let pick = [...courts.slice(0, limit - Math.min(2, parks.length)), ...parks.slice(0, 2)].slice(0, limit);
-  if (KEY) {
-    work("Reading Google Maps reviews");
-    let found = 0;
-    // each place on the map, matched to its Google listing within 300 m; and Google's own list for the sport nearby
-    const near = await google({ textQuery: GOOGLE_Q[sport] || `${sport} court`, languageCode: "en", maxResultCount: 8, locationBias: { circle: { center: { latitude: here.lat, longitude: here.lon }, radius: Math.min(radius, 5000) } } }).catch(() => []);
-    await Promise.all(pick.map(async (p) => {
-      let g = near.find((x) => x.location && meters(p, { lat: x.location.latitude, lon: x.location.longitude }) < 150);
-      if (!g) g = (await google({ textQuery: p.inPark ? `${GOOGLE_Q[sport] || sport} ${p.inPark}` : p.name, languageCode: "en", maxResultCount: 1, locationBias: { circle: { center: { latitude: p.lat, longitude: p.lon }, radius: 300 } } }).catch(() => []))[0];
-      if (g?.location && meters(p, { lat: g.location.latitude, lon: g.location.longitude }) < 300) { Object.assign(p, fromGoogle(g)); found++; }
-    }));
+  if (KEY && googleLeft() > 0) {
+    work("Reading Google Maps");
+    let found = 0, err = null;
+    // one call: Google's list for the sport nearby, each matched to a place on the map within 150 m; the ones the map
+    // does not have are added
+    const near = await google({ textQuery: GOOGLE_Q[sport] || `${sport} court`, languageCode: "en", maxResultCount: 20, locationBias: { circle: { center: { latitude: here.lat, longitude: here.lon }, radius: Math.min(radius, 5000) } } }).catch((e) => { err = e.message; return []; });
+    for (const p of pick) {
+      const g = near.find((x) => x.location && meters(p, { lat: x.location.latitude, lon: x.location.longitude }) < 150);
+      if (g) { Object.assign(p, fromGoogle(g)); found++; }
+    }
     for (const g of near) {
       if (!g.location || pick.length >= limit + 2) continue;
       const at = { lat: g.location.latitude, lon: g.location.longitude };
-      if (pick.some((p) => meters(p, at) < 150)) continue;
+      if (pick.some((p) => meters(p, at) < 150) || meters(here, at) > radius) continue;
       pick.push({ id: `google:${g.id}`, ...at, name: g.displayName?.text, kind: "pitch", tags: {}, dist: meters(here, at), dir: bearing(here, at), ...fromGoogle(g) }); found++;
     }
-    tell({ step: "Read Google Maps reviews", tool: "reviews", detail: `${found} places with a Google listing, ${pick.reduce((a, p) => a + (p.reviews?.length || 0), 0)} reviews read` });
-  } else tell({ step: "No Google Maps reviews", tool: "reviews", detail: "GOOGLE_MAPS_API_KEY is not set on the server: judging from the map tags and the weather only" });
+    const nrev = pick.reduce((a, p) => a + (p.reviews?.length || 0), 0);
+    tell({ step: err ? "Google Maps did not answer" : "Read Google Maps", tool: "reviews", detail: err || `${found} places with a Google rating${nrev ? `, ${nrev} reviews read` : " (this key's plan has no review text)"}` });
+  } else tell({ step: "No Google Maps", tool: "reviews", detail: KEY ? "today's Google Maps quota is used up: judging from the map tags and the weather" : "GOOGLE_MAPS_API_KEY is not set on the server: judging from the map tags and the weather" });
   await english(pick);
   work("Checking the weather at that hour");
   const w = await forecast(here.lat, here.lon, date, start);
@@ -207,7 +213,7 @@ export async function search({ lat, lon, sport = "basketball", date, start = "19
   const g = judged.filter((p) => p.verdict === "good").length;
   tell({ step: "Judged every place", tool: "verify", detail: `${g} good, ${judged.filter((p) => p.verdict === "maybe").length} maybe, ${judged.filter((p) => p.verdict === "no").length} no · ${judged.filter((p) => p.by === "model").length} by Muse Glimmer, every reason checked against its source` });
   // reviews go back with their author and the link to Google Maps; only the ones a reason quotes
-  return { here, sport, date, start, weather: w, reviews: !!KEY, places: judged.map((p) => ({ ...p, reviews: (p.reviews || []).filter((r) => p.reasons.some((x) => x.review === r.n)).map(({ n, stars, when, text, author, authorUrl }) => ({ n, stars, when, text, author, authorUrl })) })) };
+  return { here, sport, date, start, weather: w, google: judged.some((p) => p.rating != null), reviews: judged.some((p) => p.reviews?.length), places: judged.map((p) => ({ ...p, reviews: (p.reviews || []).filter((r) => p.reasons.some((x) => x.review === r.n)).map(({ n, stars, when, text, author, authorUrl }) => ({ n, stars, when, text, author, authorUrl })) })) };
 }
 
 // the map under a route, drawn by the app in its own style: roads, rivers and parks from OpenStreetMap, no labels

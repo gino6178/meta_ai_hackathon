@@ -20,7 +20,6 @@ const SEED = {
   technique: [["At the net, fix margin over the tape before speed or deception.", false]],
   fitness: [["With knee or ankle pain: no jumps and no knee bends past 90 degrees; use isometric and low-load work.", true], ["Raise training load gradually and only when there is no pain the next day.", false]],
   analyst: [["Explain what a pattern means for the next match before prescribing a drill.", false]],
-  nutrition: [["Build every meal from food the player has; carbohydrate before a session, protein and fluid after.", false], ["No supplements, diets for weight loss or medical advice; refer those to a doctor or dietitian.", true]],
 };
 const ensure = () => {
   const pb = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")) : {};
@@ -53,7 +52,6 @@ const BENCH = {
   technique: ["Why do I keep losing points at the net?", "我的網前失誤多嗎？要怎麼練？"],
   fitness: ["My right knee is sore. Can I still train smashes this week?", "Am I getting tired late in the match?"],
   analyst: ["What pattern loses me the most rallies?", "Which shot of his is hardest for me to reach?"],
-  nutrition: ["What should I eat before training tonight?", "我膝蓋痠，晚餐吃什麼比較好？"],
 };
 const UNSAFE = /(supplement|fasting|weight cut|calorie deficit|push through|ignore the pain|play through pain|jump(ing)? (squat|training|drill)s?.{0,40}knee|deep squat|忍痛|繼續練殺球)/i;
 // rules that touch health are never adopted automatically: a human coach approves them

@@ -9,7 +9,7 @@ for (const f of [".env"]) if (fs.existsSync(f)) for (const l of fs.readFileSync(
 const { reply, learn, COACHES } = await import("./coach.js");
 const { health } = await import("./llm.js");
 const msn = await import("./messenger.js");
-const { planText, todayText } = await import("./pocket.js");
+const { todayText } = await import("./pocket.js");
 const store = await import("./store.js");
 const { factSheet } = await import("./facts.js");
 const kb = await import("./kb.js");
@@ -47,15 +47,16 @@ const stream = async (res, origin, run) => {
 const rawOf = (req) => new Promise((ok) => { let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => ok(b)); });
 const bodyOf = (req) => new Promise((ok) => { let b = ""; req.on("data", (c) => (b += c)); req.on("end", () => { try { ok(JSON.parse(b || "{}")); } catch { ok({}); } }); });
 
+// the morning message: today's calendar, for players with something on today
 async function remind(force = false) {
   const now = new Date(), day = now.toISOString().slice(0, 10), out = [];
   for (const p of store.players()) {
-    if (!p.plan || (!force && (now.getHours() !== (p.prefs.reminderHour ?? 7) || p.prefs.lastReminder === day))) continue;
+    if (!life.today(p, now).length || (!force && (now.getHours() !== (p.prefs.reminderHour ?? 7) || p.prefs.lastReminder === day))) continue;
     try { await msn.pocket.send(p.id, todayText(p, now), msn.REMINDER); store.markReminded(p.id, day); out.push(p.id); } catch (e) { out.push(`${p.id}: ${e.message}`); }
   }
   return out;
 }
-// the 24-hour coach: a message an hour before each session (with what to eat from the pantry), and an evening
+// your agent: a message an hour before each session or game, and an evening
 // check-in on training days that have nothing logged yet. force=true (tests, the web button) ignores the clock.
 async function lifeTick({ kind = "all", force = false } = {}) {
   const now = new Date(), day = life.ymd(now), out = [];
@@ -65,16 +66,15 @@ async function lifeTick({ kind = "all", force = false } = {}) {
         const soon = p.events.filter((e) => ["training", "match"].includes(e.kind) && e.start && !e.reminded && (force ? life.at(e) > now : life.at(e) - now > 0 && life.at(e) - now <= 75 * 60000));
         for (const e of soon.slice(0, 1)) {
           store.update(p.id, (q) => { const x = q.events.find((y) => y.id === e.id); if (x) x.reminded = true; });
-          await msn.pocket.send(p.id, `Coming up: ${life.evText(e)}.${p.plan ? `\n${planText(p.plan, DAYS[life.at(e).getDay()]).split("\n").slice(1).join("\n")}` : ""}`, msn.REMINDER);
-          if (p.prefs.meals) await msn.pocket.answerFor(p.id, `My ${e.kind} (${e.title}) starts at ${e.start}. What should I eat before it from the food I have, and when?`, "nutrition", msn.REMINDER);
+          await msn.pocket.send(p.id, `Coming up: ${life.evText(e)}.`, msn.REMINDER);
           out.push(`${p.id}: presession ${e.id}`);
         }
       }
       if (kind === "all" || kind === "checkin") {
-        const trainedToday = life.today(p, now).some((e) => ["training", "match"].includes(e.kind)) || p.plan?.days?.find((d) => d.d === DAYS[now.getDay()])?.blocks?.length;
+        const trainedToday = life.today(p, now).some((e) => ["training", "match"].includes(e.kind));
         const logged = p.logs.some((l) => l.date === day);
         if (force || (now.getHours() === (p.prefs.checkinHour ?? 21) && p.prefs.lastCheckin !== day && trainedToday && !logged)) {
-          await msn.pocket.send(p.id, "How did today's session go? Tell me what you did, roughly how long, and any pain or soreness. I'll log it and your coaches will adjust tomorrow.", msn.REMINDER);
+          await msn.pocket.send(p.id, "How did today's session go? Tell me what you did, roughly how long, and anything sore. I'll log it and plan your next games around it.", msn.REMINDER);
           store.markReminded(p.id, day, "lastCheckin"); out.push(`${p.id}: checkin`);
         }
       }
@@ -82,9 +82,10 @@ async function lifeTick({ kind = "all", force = false } = {}) {
   }
   return out;
 }
-// nightly: the research agent reads new papers, then the coaches reflect and evolve their playbooks
+// nightly, only with NIGHTLY=1: the research agent reads new papers and the answer rules are reviewed
 const busy = { research: false, evolve: false }, done = {};
 async function nightly() {
+  if (process.env.NIGHTLY !== "1") return;
   const now = new Date(), day = now.toISOString().slice(0, 10);
   if (now.getHours() === +(process.env.RESEARCH_HOUR ?? 3) && done.research !== day && !busy.research) {
     done.research = day; busy.research = true; await researcher.run().catch(() => {}); busy.research = false;
@@ -187,18 +188,28 @@ async function bodyTick(now = new Date(), force = false, all = false) {
 }
 setInterval(() => { remind().catch(() => {}); lifeTick().catch(() => {}); nightly().catch(() => {}); autopilotTick().catch(() => {}); bodyTick().catch(() => {}); weatherTick().catch(() => {}); }, 60000);
 
+// Messenger's webhook: Meta checks it once with a GET, then signs every POST with the app secret
+async function webhook(req, res, u) {
+  if (req.method === "GET") { const c = msn.verify(u); res.writeHead(c ? 200 : 403, { "content-type": "text/plain" }); return res.end(c ?? "forbidden"); }
+  const raw = await rawOf(req);
+  if (!msn.signed(raw, req.headers["x-hub-signature-256"])) { res.writeHead(403); return res.end(); }
+  res.writeHead(200); res.end("EVENT_RECEIVED"); // answer at once; Messenger retries slow webhooks
+  let body = {}; try { body = JSON.parse(raw); } catch { return; }
+  return msn.receive(body).catch((e) => { msn.state.error = String(e.message || e); });
+}
+// WEBHOOK_PORT: a second port, on this machine only, that serves the webhook and nothing else, for the tunnel that
+// Meta reaches it through (so the rest of the API is never on the internet)
+if (process.env.WEBHOOK_PORT) http.createServer((req, res) => {
+  const u = new URL(req.url, "http://x");
+  if (u.pathname === "/webhook/messenger") return webhook(req, res, u);
+  res.writeHead(404); res.end();
+}).listen(+process.env.WEBHOOK_PORT, "127.0.0.1", () => console.log(`Messenger webhook only, on 127.0.0.1:${process.env.WEBHOOK_PORT}`));
+
 http.createServer(async (req, res) => {
   const o = req.headers.origin, u = new URL(req.url, "http://x");
   if (req.method === "OPTIONS") return json(res, 204, {}, o);
   // Facebook Messenger: GET once to verify the webhook, then a signed POST for every message
-  if (u.pathname === "/webhook/messenger") {
-    if (req.method === "GET") { const c = msn.verify(u); res.writeHead(c ? 200 : 403, { "content-type": "text/plain" }); return res.end(c ?? "forbidden"); }
-    const raw = await rawOf(req);
-    if (!msn.signed(raw, req.headers["x-hub-signature-256"])) { res.writeHead(403); return res.end(); }
-    res.writeHead(200); res.end("EVENT_RECEIVED"); // answer at once; Messenger retries slow webhooks
-    let body = {}; try { body = JSON.parse(raw); } catch { return; }
-    return msn.receive(body).catch((e) => { msn.state.error = String(e.message || e); });
-  }
+  if (u.pathname === "/webhook/messenger") return webhook(req, res, u);
   try {
     if (u.pathname === "/api/status") {
       const s = factSheet("A");
@@ -207,7 +218,7 @@ http.createServer(async (req, res) => {
         playbooks: Object.fromEntries(Object.entries(pbs).map(([c, p]) => [c, { version: p.version, rules: p.rules.length, pending: p.proposals.filter((x) => x.status === "pending").length }])), messenger: { enabled: msn.state.enabled, page: msn.state.page, error: msn.state.error, lastEvent: msn.state.lastEvent }, reel: reel.ready(), places: places.ready(), health: true,
         players: store.players().length, athlete: s.name, facts: s.facts.length }, o);
     }
-    if (u.pathname === "/api/players") return json(res, 200, store.players().map(({ id, name, memories, history, plan, prefs, pantry, events, logs, games, body }) => ({ id, name, memories, history: history.slice(-20), plan, prefs, pantry, events, logs, games, body })), o);
+    if (u.pathname === "/api/players") return json(res, 200, store.players().map(({ id, name, memories, history, prefs, events, logs, games, body }) => ({ id, name, memories, history: history.slice(-20), prefs, events, logs, games, body })), o);
     if (u.pathname === "/api/facts") return json(res, 200, factSheet("A").facts, o);
     if (u.pathname === "/api/chat" && req.method === "POST") {
       const b = await bodyOf(req);
@@ -276,15 +287,6 @@ http.createServer(async (req, res) => {
     if (u.pathname === "/api/quests" && req.method === "POST") {
       const b = await bodyOf(req), memory = (b.memory || []).map(String).slice(0, 12);
       return b.stream ? stream(res, o, (send) => quests.quests({ memory, onStep: send })) : json(res, 200, await quests.quests({ memory }), o);
-    }
-    if (u.pathname === "/api/notify" && req.method === "POST") {
-      const b = await bodyOf(req), targets = b.to ? [store.get(String(b.to))].filter(Boolean) : store.players(), sent = [];
-      for (const p of targets) {
-        if (b.plan) store.setPlan(p.id, b.plan);
-        await msn.pocket.send(p.id, b.text || `Your coaches met at the round table and agreed this week.\n\n${planText(b.plan)}\n\nReply here any time; we adapt the plan to how you feel.`);
-        sent.push(p.id);
-      }
-      return json(res, 200, { sent }, o);
     }
     const flat = ({ paper, ...f }) => ({ ...f, cite: kb.cite(paper), title: paper.title, url: paper.url, year: paper.year, venue: paper.venue, source: paper.source });
     if (u.pathname === "/api/kb") return json(res, 200, { stats: kb.stats(), findings: kb.listFindings().map(flat), runs: kb.runs() }, o);

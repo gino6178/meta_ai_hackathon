@@ -72,7 +72,7 @@ pickleball, table tennis, basketball, volleyball, soccer. Your video and your he
 
 | Meta model or product | Where it runs | What it does in Serve |
 |---|---|---|
-| **Muse Glimmer** (open weights) | Our GPU server: Ollama on one RTX 3090, 4 requests in parallel | Every agent: the Autopilot's tool loop (native tool calling); every agent-to-agent message, with each member's agent answering in parallel; reading what hurts into the body log (a tool call); judging courts from map tags, reviews and the forecast; place names in English; the body report; highlight captions; reading play requests; the coach agents |
+| **Muse Glimmer** (open weights) | Our GPU server: Ollama on one RTX 3090, 4 requests in parallel | Every agent: the Autopilot's tool loop (native tool calling); every agent-to-agent message, with each member's agent answering in parallel; reading what hurts into the body log (a tool call); judging courts from map tags, reviews and the forecast; place names in English; the body report; highlight captions; reading play requests; answers about your game, every number checked |
 | **Sapiens2** (pose, 0.4B) | Our GPU server, Hugging Face Transformers | Every player's pose on every frame of a highlight; finds the moment (fastest swing, top of the jump, the kick) |
 | **SAM 2.1** (Hiera-L) | Our GPU server, Hugging Face Transformers | Each player's outline, for the reel's spotlight and its drawn view |
 | **DETR** (ResNet-50) | Our GPU server, Hugging Face Transformers | Finds the people in your own video, so the reel follows you |
@@ -101,21 +101,21 @@ Beyond a chat box:
 - **Messenger end to end** (`agent/test/e2e.mjs`): a fake Graph API and the real gateway: linking, the plan, the
   calendar, the Autopilot with buttons, a tap that books, the reminder and the check-in, a game that ran long, what
   hurts, a health export shared to the chat, the body check-in with buttons, `/report`, feedback and `/forget`.
-- **Coach replies** (`submission/glimmer_eval.md`): 18 of 18 replies had every number verified (115 numbers); median
-  22 s on one RTX 3090.
+- **Answers about your game** (`submission/glimmer_eval.md`): 18 of 18 answers had every number verified (115
+  numbers); median 22 s on one RTX 3090.
 
 ## Also in Serve
 
-The app grew out of a badminton analysis tool, and that is still in it: the shuttle's flight in 3D from one camera,
-shot speeds and heat zones, coach agents who explain them and plan a week at a round table, a courtside live view,
-and coach playbooks that improve themselves with safety and regression gates (`submission/evolution_report.md`).
+The app grew out of a badminton match tool, and some of it is still there for the sample match: the shuttle's flight
+in 3D from one camera, shot speeds and heat zones, and a courtside live view. Those pages run on the sample match
+only; Serve is the agent that gets you playing, not a coach.
 
 ## Repository layout
 
 | Path | Content |
 |---|---|
 | `web/` | React + Three.js + Vite app; laptop, tablet and phone layouts; light and dark |
-| `agent/` | Node gateway: Autopilot, agent to agent, body log and health import, courts near you, Messenger, highlights, the club and Play, coach chat with the number verifier, tests and evals |
+| `agent/` | Node gateway: Autopilot, agent to agent, body log and health import, courts near you, Messenger, highlights, the club and Play, answers checked by the number verifier, tests and evals |
 | `server/start.sh`, `watch.sh`, `up.sh` | Start Muse Glimmer (Ollama, GPU 1, port 11435) and the gateway (port 8790) on the GPU server, with a watchdog |
 | `video/` | The demo video pipeline (recording, narration, assembly), the sample health export (`sample_health.py`), and `video/pose/` (Sapiens2, SAM 2.1, DETR) |
 | `submission/` | Project description, architecture, cover, screenshots and evaluation reports |
@@ -152,7 +152,7 @@ These are not ours to publish, or are derived from material that is not:
 - **The highlight pose data** (`web/public/data/highlight_people.json`), read from that footage by `video/pose/`.
 - **The 3D anatomy model files** (`web/public/body/`) and the Whisper model files (`web/public/models/`).
 
-The pages built on the match (the analysis, the coaches, the sample highlights) need these files. The agent, the
+The pages built on the match (the analysis and the sample highlights) need these files. The agent, the
 Autopilot, the body log, courts, the club and Play run on the demo data that is included.
 
 ## Prototype status
@@ -172,7 +172,9 @@ Autopilot, the body log, courts, the club and Play run on the demo data that is 
 - Map data © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL), through the Overpass API
   and Nominatim. Forecasts: [Open-Meteo](https://open-meteo.com) (CC BY 4.0). Reviews: Google Maps (Places API),
   shown with their authors and not stored.
-- 2D shuttle tracking: [TrackNetV5](https://github.com/gino6178/TrackNetV5).
+- 2D shuttle tracking and the sample match's shot labels: [TrackNetV5](https://github.com/gino6178/TrackNetV5), our
+  own earlier work, made before the hackathon (only used to prepare the sample match).
 - 3D anatomy: BodyParts3D 4.0, © The Database Center for Life Science, CC BY 4.0, adapted via
   [Human Atlas](https://github.com/ashemag/human-atlas) (MIT).
-- Coach portraits are AI-generated images of fictional people. Voice: Whisper tiny (Xenova ONNX), in the browser.
+- Portraits on the Live page are AI-generated images of fictional people, made with Gemini (Google). Voice: Whisper
+  tiny (Xenova ONNX), in the browser.

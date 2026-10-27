@@ -70,7 +70,7 @@ a check-in after, what hurts, a health export shared into the chat, courts near 
 
 | Meta model or product | Where it runs | What it does in Serve |
 |---|---|---|
-| **Muse Glimmer** (open weights) | Our GPU server: Ollama on one RTX 3090, 4 requests in parallel | Every agent: the Autopilot's tool loop (native tool calling); every agent-to-agent message, with each member's agent answering in parallel; reading what hurts into the body log; judging courts from map tags, reviews and the forecast; place names in English; the body report; highlight captions; play requests; the coach agents |
+| **Muse Glimmer** (open weights) | Our GPU server: Ollama on one RTX 3090, 4 requests in parallel | Every agent: the Autopilot's tool loop (native tool calling); every agent-to-agent message, with each member's agent answering in parallel; reading what hurts into the body log; judging courts from map tags, reviews and the forecast; place names in English; the body report; highlight captions; play requests; answers about your game, every number checked |
 | **Sapiens2** (pose, 0.4B) | Our GPU server, Hugging Face Transformers | Every player's pose on every highlight frame; the reel's moment |
 | **SAM 2.1** (Hiera-L) | Our GPU server, Hugging Face Transformers | Each player's outline, for the spotlight and the drawn view |
 | **DETR** (ResNet-50) | Our GPU server, Hugging Face Transformers | Finds the player in their own video |

@@ -4,15 +4,11 @@ import Agent from "./pages/Agent.jsx";
 import Upload from "./pages/Upload.jsx";
 import Processing from "./pages/Processing.jsx";
 import Report from "./pages/Report.jsx";
-import Coaches from "./pages/Coaches.jsx";
-import Coach from "./pages/Coach.jsx";
 import Memory from "./pages/Memory.jsx";
 import Match from "./pages/Match.jsx";
 import Scout from "./pages/Scout.jsx";
 import Live from "./pages/Live.jsx";
-import RoundTable from "./pages/RoundTable.jsx";
 import Messages from "./pages/Messages.jsx";
-import Lab from "./pages/Lab.jsx";
 import Club from "./pages/Club.jsx";
 import Play from "./pages/Play.jsx";
 import You from "./pages/You.jsx";
@@ -31,24 +27,23 @@ const base = (p) => p.split("/")[0];
 
 export function go(path) { location.hash = "/" + path; window.scrollTo(0, 0); }
 
-// Five tabs, the way a social app has them: the agent, the club, play, goals and you. The coaches are the inbox.
+// Five tabs, the way a social app has them: the agent, the club, play, goals and you. Messenger is the inbox.
 const TABS = [
   { k: "home", label: "Agent", icon: "spark", on: ["home", "autopilot"] },
   { k: "club", label: "Club", icon: "coaches", on: ["club"] },
   { k: "play", label: "Play", icon: "book", on: ["play", "courts"] },
   { k: "goals", label: "Goals", icon: "goals", on: ["goals"] },
-  { k: "you", label: "You", icon: "you", on: ["you", "body", "match", "report", "scout", "memory", "lab", "analyze", "processing"] },
+  { k: "you", label: "You", icon: "you", on: ["you", "body", "match", "report", "scout", "memory", "analyze", "processing"] },
 ];
-const INBOX = { k: "coaches", label: "Coaches", icon: "send", on: ["coaches", "coach", "roundtable", "messages"] };
+const INBOX = { k: "messages", label: "Messenger", icon: "send", on: ["messages"] };
 const MORE = [
   { k: "autopilot", label: "Autopilot", note: "Your agent keeps you playing", icon: "spark" },
   { k: "body", label: "Body log", note: "Tell your agent what hurts; your health app", icon: "heart" },
   { k: "courts", label: "Courts near you", note: "Any sport, judged from reviews and weather", icon: "pin" },
   { k: "live", label: "Live court side", note: "Briefings between points", icon: "live" },
   { k: "analyze", label: "Analyze a video", note: "Add a match from this device", icon: "plus" },
-  { k: "memory", label: "Player memory", note: "What the coaches remember", icon: "memory" },
-  { k: "messages", label: "Coaches in Messenger", note: "Your 24-hour coach, in your pocket", icon: "chat" },
-  { k: "lab", label: "Lab", note: "How the coaches improve", icon: "verify" },
+  { k: "memory", label: "Your memory", note: "What your agent remembers", icon: "memory" },
+  { k: "messages", label: "Serve in Messenger", note: "Your agent, in your chats", icon: "chat" },
   { k: "about", label: "About Serve", note: "How it works, privacy", icon: "info" },
 ];
 const href = (k) => `#/${k === "home" ? "" : k}`;
@@ -102,7 +97,7 @@ function Shell({ page, data }) {
         <div className="side-tools">
           <a className="btn primary side-new" href="#/analyze" title="Analyze a video"><Icon name="plus" size={18} /><span className="lbl">Analyze video</span></a>
           <VoiceCoach data={data} />
-          <a className="icon-btn side-inbox" href="#/coaches" aria-label="Coaches" aria-current={cur(INBOX)}><Icon name="send" size={20} /></a>
+          <a className="icon-btn side-inbox" href="#/messages" aria-label="Messenger" aria-current={cur(INBOX)}><Icon name="send" size={20} /></a>
           <div className="side-more" ref={moreBox}>
             <button className="side-more-btn" aria-expanded={more} aria-haspopup="true" aria-label="More" onClick={() => setMore(!more)}>
               <Icon name="menu" size={22} /><span className="lbl">More</span>
@@ -122,7 +117,7 @@ function Shell({ page, data }) {
             )}
           </div>
         </div>
-        <p className="side-status" title="Every coach runs on Muse Glimmer on a GPU you own; your match and memory never leave it"><i aria-hidden="true" /><span className="lbl">Muse Glimmer · your server</span></p>
+        <p className="side-status" title="Every agent runs on Muse Glimmer on a GPU you own; your videos, body log and memory never leave it"><i aria-hidden="true" /><span className="lbl">Muse Glimmer · your server</span></p>
       </header>
       <nav className="tabbar" aria-label="Main">
         {TABS.map((it) => <a key={it.k} href={href(it.k)} aria-current={cur(it)}><span className="tab-ic"><Icon name={it.icon} size={24} />{badge(it)}</span><span>{it.label}</span></a>)}
@@ -174,25 +169,21 @@ export default function App() {
     <>
       {!bare && <Shell page={page} data={data} />}
       <main className={bare ? "bare" : ""}>
-        {page === "home" && <Agent data={data} />}
+        {(page === "home" || ["coaches", "coach", "roundtable", "lab"].includes(base(page))) && <Agent data={data} />}
         {page === "about" && <Landing data={data} />}
         {page === "analyze" && <Upload onVideo={(v) => { setVideo(v); go("processing"); }} />}
         {page === "processing" && <Processing video={video} onDone={() => {
           // remember this analysis so later sessions can refer back to it
           const ins = data?.insights, oc = data?.outcomes?.A;
           if (ins && oc) memory.saveSession(data.event, `Match analysed (${data.event}): most-targeted zone ${ins.topZone.key.replace("-", " ")}, ${oc.winners.length} winners vs ${oc.beaten.length} conceded, ${oc.errors.length} own errors.`);
-          go("coaches");
+          go("match");
         }} />}
         {page === "report" && <Report data={data} video={video} />}
-        {page === "coaches" && <Coaches data={data} video={video} />}
-        {base(page) === "coach" && <Coach id={page.split("/")[1]} data={data} />}
         {page === "memory" && <Memory />}
         {base(page) === "match" && <Match />}
         {page === "scout" && <Scout />}
         {page === "live" && <Live data={data} />}
-        {page === "roundtable" && <RoundTable data={data} />}
         {page === "messages" && <Messages />}
-        {page === "lab" && <Lab />}
         {page === "club" && <Club data={data} view="feed" />}
         {page === "goals" && <Club data={data} view="goals" />}
         {page === "play" && <Play data={data} />}

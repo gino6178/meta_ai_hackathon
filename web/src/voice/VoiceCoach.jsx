@@ -4,7 +4,7 @@ import { answer, EXAMPLES } from "./intents.js";
 import { go } from "../App.jsx";
 import Icon from "../components/Icon.jsx";
 
-// Hands-free coach: tap the mic, ask a question, get a spoken answer and the view that shows it.
+// Ask out loud: tap the mic, ask your agent, get a spoken answer and the view that shows it.
 // Speech is recognised in the browser by Whisper tiny; no audio or text leaves the device.
 let worker = null, seq = 0;
 const pending = new Map();
@@ -95,13 +95,13 @@ export default function VoiceCoach({ data }) {
 
   return (
     <>
-      <button ref={btn} className={`voice-btn ${state}`} onClick={() => setOpen(!open)} aria-expanded={open} aria-label="Ask the voice coach" title="Voice coach: ask a question out loud">
+      <button ref={btn} className={`voice-btn ${state}`} onClick={() => setOpen(!open)} aria-expanded={open} aria-label="Ask out loud" title="Ask your agent out loud">
         <Icon name="mic" size={22} /><span className="lbl">Ask out loud</span>
       </button>
       {open && (
-        <aside className="voice-panel" role="dialog" aria-label="Voice coach">
-          <header><b>Voice coach</b><span className="tiny muted">Speech is recognised in this browser; no audio leaves the device.</span>
-            <button className="icon-btn sm" aria-label="Close voice coach" onClick={() => { setOpen(false); btn.current?.focus(); }}><Icon name="close" size={16} /></button></header>
+        <aside className="voice-panel" role="dialog" aria-label="Ask out loud">
+          <header><b>Ask out loud</b><span className="tiny muted">Speech is recognised in this browser; no audio leaves the device.</span>
+            <button className="icon-btn sm" aria-label="Close" onClick={() => { setOpen(false); btn.current?.focus(); }}><Icon name="close" size={16} /></button></header>
           <button className={`voice-mic ${state}`} onClick={toggle} disabled={state === "thinking"}>
             <i />{state === "listening" ? "Listening… tap to stop" : state === "thinking" ? "Transcribing on-device…" : "Tap and ask a question"}
           </button>

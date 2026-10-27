@@ -79,7 +79,7 @@ export async function receive(body) {
     if (!id) continue;
     try {
       const fb = /^fb:(\d+):(-?1)$/.exec(ev.message?.quick_reply?.payload || "");
-      if (fb) { pocket.feedback(id, +fb[1], +fb[2]); await send(id, +fb[2] > 0 ? "Thanks, noted for your coaches." : "Thanks, your coaches will review this."); continue; }
+      if (fb) { pocket.feedback(id, +fb[1], +fb[2]); await send(id, +fb[2] > 0 ? "Thanks, noted." : "Thanks, noted: I'll do better on that."); continue; }
       const qp = ev.message?.quick_reply?.payload || ev.postback?.payload || "";
       if ((qp.startsWith("ap:") || qp.startsWith("wx:")) && hooks.payload) { await hooks.payload(id, qp); continue; }
       if (qp.startsWith("bd:")) { await pocket.bodyAnswer(id, qp); continue; }

@@ -48,9 +48,9 @@ export default function Courts() {
     <div className="page courts-page">
       <header className="report-head">
         <div>
-          <span className="tag">Courts near you · OpenStreetMap, Google Maps reviews, the forecast</span>
+          <span className="tag">Courts near you · OpenStreetMap, Google Maps, the forecast</span>
           <h1 className="h1">Where can we play?</h1>
-          <p className="muted">Public courts, school fields and parks near you, for any ball sport. Your agent reads the map, the reviews and the weather for the hour you want, and says if you can play there, with the reason for every call.</p>
+          <p className="muted">Public courts, school fields and parks near you, for any ball sport. Your agent reads the map, the ratings and the weather for the hour you want, and says if you can play there, with the reason for every call.</p>
         </div>
       </header>
 
@@ -115,7 +115,7 @@ export default function Courts() {
               </li>
             ))}
           </ul>
-          <p className="tiny muted">Places and tags © OpenStreetMap contributors (ODbL). {r.reviews ? "Reviews from Google Maps, shown with their author; not stored." : "Google Maps reviews are read when the server has a Google Maps key."} Forecast: Open-Meteo.</p>
+          <p className="tiny muted">Places and tags © OpenStreetMap contributors (ODbL). {r.google ? `Ratings${r.reviews ? " and reviews (shown with their author)" : ""} from Google Maps, not stored.` : "Google Maps ratings are read when the server has a Google Maps key."} Forecast: Open-Meteo.</p>
         </section>
       )}
     </div>

@@ -831,7 +831,7 @@ export default function Highlights({ m, p }) {
               <a className="btn ghost" href={file.url} download={`${name}.${file.ext}`}>Download</a>
               <button className="btn ghost" onClick={copy}>Copy caption</button>
               <button className="btn ghost" onClick={() => setMsg(clubShares().highlights
-                ? (postToClub(mine ? { kind: "highlight", coach: "technique", text: `Shared my ${kind}, in slow motion.`, reply: "Good extension at contact. Next, watch where your racket hand finishes." } : { kind: "highlight", coach: "analyst", text: `Shared a highlight reel: top ${list.length} from ${m.event}.`, reply: "Great rallies. Watch how the last shot of each one sets up the winner." }) ? "Shared with the club feed." : "Could not save to the club feed.")
+                ? (postToClub(mine ? { kind: "highlight", text: `Shared my ${kind}, in slow motion.` } : { kind: "highlight", text: `Shared a highlight reel: top ${list.length} from ${m.event}.` }) ? "Shared with the club feed." : "Could not save to the club feed.")
                 : "Highlights are not shared with your club yet. Turn them on under “What the club sees” on the Club page.")}>Share with the club</button>
               <a className="chip" href={shareLinks(caption).whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
               <a className="chip" href={shareLinks(caption).threads} target="_blank" rel="noopener noreferrer">Threads</a>

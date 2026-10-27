@@ -2,13 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Icon from "../components/Icon.jsx";
 import Mark from "../components/Mark.jsx";
 import TaskCard from "../components/TaskCard.jsx";
-import Avatar from "../coaches/Avatar.jsx";
-import { COACHES } from "../coaches/personas.js";
 import { tactics } from "../coaches/analysis.js";
-import { tips } from "../coaches/tips.js";
-import { useLearning } from "../coaches/learning.js";
 import { habits } from "../club/habits.js";
-import { coachById } from "../coaches/personas.js";
 import { loadMatches } from "../match/analytics.js";
 import { answer } from "../voice/intents.js";
 import { memory } from "../memory.js";
@@ -19,15 +14,13 @@ import { go } from "../App.jsx";
 import "./agent.css";
 
 // The agent home, the way Muse is laid out: say what you want, and every job the agent takes on shows up as a card
-// with its steps, running in the background and checking back when it needs you. Above it, stories from the coaches
-// and the club.
+// with its steps, running in the background and checking back when it needs you. Above it, stories from the club.
 const IDEAS = [
   "Challenge Kenji to a singles match this week",
   "Doubles on Thursday evening with Hana",
   "Spar with someone who plays like my next opponent",
   "Get this week's quests",
   "Make my highlight reel for Instagram",
-  "How should I warm up before Thursday?",
   "Plan my week on Autopilot",
   "Find my best match this week",
   "Find me a random match this weekend",
@@ -52,7 +45,7 @@ function Story({ items, at, onClose, onMove }) {
       <div ref={box} tabIndex={-1} className="story dark-scope" role="dialog" aria-modal="true" aria-label={`${it.name}'s story`} onClick={(e) => e.stopPropagation()} style={{ "--cc": it.color }}>
         <div className="story-bars" aria-hidden="true">{items.map((x, k) => <i key={x.id} className={k < at ? "done" : k === at ? (still ? "done" : "now") : ""} />)}</div>
         <header>
-          {it.coach ? <Avatar coach={it.coach} size={40} /> : <span className="mav story-mav" aria-hidden="true">{initials(it.name)}</span>}
+          <span className="mav story-mav" aria-hidden="true">{initials(it.name)}</span>
           <span><b>{it.name}</b><span className="tiny">{it.sub}</span></span>
           <button className="icon-btn sm" aria-label="Close" onClick={onClose}><Icon name="close" size={16} /></button>
         </header>
@@ -76,8 +69,6 @@ export default function Agent({ data }) {
   useEffect(() => { loadMatches().then((d) => setM(d.matches[0])); fetch("/data/club.json").then((r) => r.json()).then(setClub).catch(() => {}); }, []);
   useEffect(() => { try { localStorage.setItem("shuttlecoach.stories.v1", JSON.stringify(seen)); } catch { /* ignore */ } }, [seen]);
   const you = useMemo(() => (data ? playerOf(data) : null), [data]);
-  const tip = useMemo(() => (data ? tips(data) : null), [data]);
-  const learn = useLearning();
 
   function ask(said) {
     const q = (said ?? text).trim();
@@ -86,7 +77,6 @@ export default function Agent({ data }) {
     const kind = intentOf(q);
     if (kind === "play") return go(`play?task=${startPlay(q, you)}`);
     if (kind === "quests") return startQuests(memory.all().map((x) => x.text));
-    if (kind === "roundtable") return go("roundtable");
     if (kind === "highlight") return go("match?tab=reel&auto=1");
     if (kind === "autopilot") return go("autopilot?run=1");
     if (kind === "body") return go(`body?say=${encodeURIComponent(q)}`);
@@ -98,12 +88,9 @@ export default function Agent({ data }) {
       const t = tactics(data.outcomes, "A"), net = t.errReasons.find(([k]) => k === "net")?.[1] ?? 0;
       return startNight({ name: "You", weak: you.weak, net: [net, net], limit: you.limit, sessions: 0 });
     }
-    // a question: a coach the player names answers it; otherwise the match answers straight away when it can, and the
-    // right coach answers on Muse Glimmer when it cannot
-    const named = COACHES.find((c) => new RegExp(`\\b${c.name.split(" ")[1]}\\b`, "i").test(q));
-    if (named) return startAsk(q, named.id);
+    // a question: the match answers straight away when it can, and your agent answers on Muse Glimmer when it cannot
     const a = m && answer(q, { m, data });
-    if (a?.go && !a.go.startsWith("play") && !a.go.startsWith("roundtable") && !a.go.startsWith("live")) return quickAnswer(q, a);
+    if (a?.go && !a.go.startsWith("play") && !a.go.startsWith("live")) return quickAnswer(q, a);
     startAsk(q);
   }
 
@@ -114,10 +101,8 @@ export default function Agent({ data }) {
   // challenges members sent you, not answered yet (Club, Challenges tab)
   const asked = (club?.incoming || []).filter((c) => !g.arena?.answered?.[c.id]).map((c) => ({ ...c, m: club.members.find((x) => x.id === c.from) })).filter((c) => c.m);
 
-  // stories: one from each coach, then members who posted in the club
-  const stories = !tip || !club ? [] : [
-    ...COACHES.map((c) => ({ id: c.id, name: c.name, sub: c.role, color: c.color, coach: c, text: tip[c.id],
-      actions: <><a className="btn primary sm" href={`#/coach/${c.id}`}>Open chat</a><button className="btn ghost sm" onClick={() => { setStory(null); setText(`Coach ${first(c.name.replace("Coach ", ""))}, `); field.current?.focus(); }}>Reply</button></> })),
+  // stories: members who posted in the club
+  const stories = !club ? [] : [
     ...club.feed.slice(0, 4).map((f) => { const mm = club.members.find((x) => x.id === f.who); return mm && { id: f.id, name: mm.name, sub: `${f.ago} · ${club.name}`, color: "var(--agent)", text: f.text,
       actions: <><button className="btn primary sm" onClick={() => { setStory(null); go(`play?task=${startPlay(`Doubles this week with ${first(mm.name)}`, you)}`); }}>Play with {first(mm.name)}</button><a className="btn ghost sm" href="#/club">See the club</a></> }; }).filter(Boolean),
   ];
@@ -133,9 +118,9 @@ export default function Agent({ data }) {
               {stories.map((s, k) => (
                 <li key={s.id}>
                   <button className={`story-ring ${seen.includes(s.id) ? "seen" : ""}`} style={{ "--cc": s.color }} onClick={() => open(k)} aria-label={`${s.name}'s story`}>
-                    {s.coach ? <Avatar coach={s.coach} size={58} /> : <span className="mav" style={{ width: 58, height: 58, fontSize: 16 }} aria-hidden="true">{initials(s.name)}</span>}
+                    <span className="mav" style={{ width: 58, height: 58, fontSize: 16 }} aria-hidden="true">{initials(s.name)}</span>
                   </button>
-                  <span>{s.coach ? first(s.name.replace("Coach ", "")) : first(s.name)}</span>
+                  <span>{first(s.name)}</span>
                 </li>
               ))}
             </ul>
@@ -144,7 +129,7 @@ export default function Agent({ data }) {
           <section className="composer" aria-labelledby="ask-h">
             <div className="composer-head"><span className="agent-face" aria-hidden="true"><Mark size={22} /></span>
               <div><h1 id="ask-h" className="h1">{hello()}. What do you want to do?</h1>
-                <p className="muted">Book a game, challenge a friend, get your quests or ask a coach. Your agent hands each job to the right agent and shows every step.</p></div></div>
+                <p className="muted">Line up your week, book a game, tell it what hurts, find a court or ask about your game. Your agent hands each job to the right agent and shows every step.</p></div></div>
             <form className="composer-box" onSubmit={(e) => { e.preventDefault(); ask(); }}>
               <label htmlFor="agent-q" className="sr-only">Tell your agent</label>
               <textarea id="agent-q" ref={field} rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder="Challenge Kenji to a singles match this week"
@@ -166,7 +151,7 @@ export default function Agent({ data }) {
             );
           })()}
 
-          {(needs.length > 0 || learn?.waiting.length > 0 || asked.length > 0) && (
+          {(needs.length > 0 || asked.length > 0) && (
             <section className="task-sec" aria-labelledby="needs-h">
               <h2 id="needs-h" className="sec-label">Needs you</h2>
               {needs.map((t) => <TaskCard key={t.id} t={t} />)}
@@ -178,17 +163,6 @@ export default function Agent({ data }) {
                     <p className="task-said plain">{asked.map((c) => first(c.m.name)).join(" and ")} challenged you</p>
                     <p className="task-sum">{first(asked[0].m.name)}: “{asked[0].note}”</p>
                     <a className="btn sm primary" href="#/club?tab=challenges">Answer<Icon name="next" size={16} /></a>
-                  </div>
-                </article>
-              )}
-              {learn?.waiting.length > 0 && (
-                <article className="task needs" aria-label="Playbook changes waiting for your approval">
-                  <span className="task-av" aria-hidden="true"><Icon name="verify" size={22} /></span>
-                  <div className="task-body">
-                    <header><b>Your coaches</b><span className="task-state needs">Needs you</span></header>
-                    <p className="task-said plain">{learn.waiting.length} playbook change{learn.waiting.length > 1 ? "s" : ""} wait for your approval</p>
-                    <p className="task-sum">{[...new Set(learn.waiting.map((w) => coachById(w.coach)?.name || (w.coach === "head" ? "The head coach" : "A coach")))].join(" and ")} learned something from the research, but a change that touches health, or makes a coach worse on its test questions, is never adopted on its own.</p>
-                    <a className="btn sm primary" href="#/lab">Review in Lab<Icon name="next" size={16} /></a>
                   </div>
                 </article>
               )}
@@ -229,13 +203,7 @@ export default function Agent({ data }) {
             </dl>
             <a className="btn ghost sm" href="#/goals">Open goals</a>
           </section>
-          <section className="panel side-card">
-            <h2 className="panel-h">Your coaches</h2>
-            <ul className="coach-mini">
-              {COACHES.map((c) => <li key={c.id}><a href={`#/coach/${c.id}`}><Avatar coach={c} size={36} /><span><b>{c.name}</b><span className="tiny muted">{tip?.[c.id]}</span></span></a></li>)}
-            </ul>
-          </section>
-          <p className="tiny muted side-foot"><span className="agent-dot" aria-hidden="true" />Muse Glimmer on your own server. Your match and your memory never leave it.</p>
+          <p className="tiny muted side-foot"><span className="agent-dot" aria-hidden="true" />Muse Glimmer on your own server. Your videos, your body log and your memory never leave it.</p>
         </aside>
       </div>
       {story != null && <Story items={stories} at={story} onClose={() => setStory(null)} onMove={move} />}

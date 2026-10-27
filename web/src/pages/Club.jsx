@@ -21,6 +21,9 @@ import "./agent.css";
 // weekly quest (Muse Glimmer, numbers verified), the next opponent is the boss, and XP, streaks and badges follow.
 // The game state lives in this browser; the club only sees what the player shares.
 const coachOf = (id) => COACHES.find((c) => c.id === id);
+// a quest's area, shown as an icon and a name
+const AREA_IC = { tactics: "goals", technique: "match", fitness: "heart", analyst: "table" };
+const AREA_NAME = { tactics: "Tactics", technique: "Technique", fitness: "Fitness", analyst: "Your data" };
 const initials = (name) => name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 const first = (name) => name.split(" ")[0];
 const hurt = (texts) => texts.some((t) => /knee|ankle|膝|腳踝/i.test(t) && /sore|pain|hurt|injur|avoid jump|痛|痠|傷/i.test(t));
@@ -93,7 +96,7 @@ export default function Club({ data, view = "feed" }) {
   const log = (x) => setG((s) => {
     const k = `${wk}:${x.id}`, n = (s.progress[k] || 0) + 1, finished = n === x.target;
     return { ...s, progress: { ...s.progress, [k]: n }, activity: [...s.activity, { date: today(), week: wk, kind: "quest", id: x.id }],
-      mine: finished ? [{ id: `q-${k}`, who: "you", kind: "quest", coach: x.coach, text: `Finished the quest “${x.title}” from ${x.coachName}.`, reply: x.cheer, at: Date.now() }, ...s.mine] : s.mine };
+      mine: finished ? [{ id: `q-${k}`, who: "you", kind: "quest", text: `Finished the quest “${x.title}”.`, at: Date.now() }, ...s.mine] : s.mine };
   });
   const logRest = () => setG((s) => ({ ...s, activity: [...s.activity, { date: today(), week: wk, kind: "rest" }] }));
   const planNight = () => startNight({ name: "You", weak: me.weak, net: [me.net, me.net], limit: g.shares.limits && limited ? "no jump landings" : null, sessions: days.length });
@@ -112,7 +115,7 @@ export default function Club({ data, view = "feed" }) {
   const feed = [...g.mine.map((f) => ({ ...f, ago: f.at ? agoOf(f.at) : "today" })), ...club.feed];
   const cheer = (id) => setG((s) => ({ ...s, cheers: { ...s.cheers, [id]: !s.cheers[id] } }));
   const toggle = (k) => setG((s) => ({ ...s, shares: { ...s.shares, [k]: !s.shares[k] } }));
-  const join = (f) => { setG((s) => ({ ...s, joined: { ...s.joined, [f.id]: true } })); postToClub({ kind: "game", coach: "tactics", text: `Joined ${first(byId[f.who].name)}'s game: ${f.open.day} ${f.open.start} at ${f.open.venue}.`, reply: "Nice. Doubles is a good place to test this week's quest." }); };
+  const join = (f) => { setG((s) => ({ ...s, joined: { ...s.joined, [f.id]: true } })); postToClub({ kind: "game", text: `Joined ${first(byId[f.who].name)}'s game: ${f.open.day} ${f.open.start} at ${f.open.venue}.` }); };
   const send = (e) => { e.preventDefault(); const t = post.trim(); if (!t) return; postToClub({ kind: "note", text: t }); setPost(""); };
 
   const readout = (
@@ -129,10 +132,10 @@ export default function Club({ data, view = "feed" }) {
       <header className="report-head">
         <div>
           <h1 className="h1">Goals</h1>
-          <p className="muted">Your coaches turn the match into quests. Your next opponent is the boss.</p>
+          <p className="muted">Your agent turns your match into quests. Your next opponent is the boss.</p>
         </div>
         <div className="cta-row">
-          <a className="btn ghost" href="#/roundtable"><Icon name="table" size={18} />Plan my week</a>
+          <a className="btn ghost" href="#/autopilot"><Icon name="spark" size={18} />Plan my week</a>
         </div>
       </header>
       {readout}
@@ -143,7 +146,7 @@ export default function Club({ data, view = "feed" }) {
           {qTask && <TaskCard t={qTask} steps={6} />}
           {!q && !qTask && (
             <div className="club-empty">
-              <p>Each coach turns your match into one quest that counters your next opponent. Your agent asks all four on Muse Glimmer and checks every number; about half a minute.</p>
+              <p>Your agent turns your match into four quests, one per area (tactics, technique, fitness, your data), each countering your next opponent. Muse Glimmer writes them and code checks every number; about half a minute.</p>
               <button className="btn primary" onClick={() => startQuests(mem)}>Get this week's quests</button>
             </div>
           )}
@@ -153,11 +156,11 @@ export default function Club({ data, view = "feed" }) {
                 const c = coachOf(x.coach), n = prog(x.id), fin = n >= x.target;
                 return (
                   <li key={x.id} className={`quest ${fin ? "done" : ""}`} style={{ "--cc": c.color }}>
-                    <Avatar coach={c} size={44} />
+                    <span className="quest-ic" aria-hidden="true"><Icon name={AREA_IC[x.coach] || "goals"} size={22} /></span>
                     <div className="quest-body">
                       <b>{x.title}</b>
                       <p>{x.task}</p>
-                      <span className="tiny muted">{c.name} · {x.why}</span>
+                      <span className="tiny muted">{AREA_NAME[x.coach] || "Quest"} · {x.why}</span>
                       <div className="quest-row">
                         <span className="pips" aria-label={`${Math.min(n, x.target)} of ${x.target} ${x.unit} logged`}>{Array.from({ length: x.target }, (_, k) => <i key={k} className={k < n ? "on" : ""} />)}</span>
                         <span className="tiny">{Math.min(n, x.target)} / {x.target} {x.unit} · {x.xp} XP</span>
@@ -283,7 +286,7 @@ export default function Club({ data, view = "feed" }) {
             </header>
             <p className="tiny muted">{club.night.courts} courts · {club.night.minutes} min · {members.length} players</p>
             {nTask && <TaskCard t={nTask} steps={3} />}
-            {!night && !nTask && <><p className="muted small">The head coach plans one session for everyone: players who lose points in the same zone train together, the members whose attack lands there feed them, and shared health limits are respected.</p><button className="btn ghost sm" onClick={planNight}>Plan club night</button></>}
+            {!night && !nTask && <><p className="muted small">Your agent plans one session for everyone: players who lose points in the same zone train together, the members whose attack lands there feed them, and shared health limits are respected.</p><button className="btn ghost sm" onClick={planNight}>Plan club night</button></>}
             {night && (
               <>
                 <p className="tiny muted">{night.source === "model" ? `Every group written by Muse Glimmer, ${night.written} of ${night.total} checked` : night.source === "mixed" ? `Muse Glimmer wrote ${night.written} of ${night.total} groups; the rest use the rule-based text` : "Rule-based plan: the model's text did not pass the checks"} · groups set by code so every player is busy in every block{night.timing ? ` · ${night.timing.seconds} s` : ""}</p>
@@ -331,7 +334,7 @@ export default function Club({ data, view = "feed" }) {
                 <li key={k}><label><input type="checkbox" checked={!!g.shares[k]} onChange={() => toggle(k)} />{l}</label></li>
               ))}
             </ul>
-            <p className="tiny muted">Never shared: match footage, your chats with the coaches, your memory, where you live or what an injury is. {limited && !g.shares.limits ? "With health limits off, the club night plan will not know to keep you off jumps." : ""}</p>
+            <p className="tiny muted">Never shared: match footage, your chats with your agent, your memory, where you live or what an injury is. {limited && !g.shares.limits ? "With health limits off, the club night plan will not know to keep you off jumps." : ""}</p>
           </section>
         </aside>
       </div>}

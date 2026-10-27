@@ -252,3 +252,4 @@
 @media (prefers-reduced-motion: reduce) { .a2a-thread li { animation: none; } .a2a-thread .dots i { animation: none; } }
 .row-inline { display: inline-flex; align-items: center; gap: 6px; } .row-inline input { width: 90px; }
 .report .good { color: var(--good); font-weight: 600; }
+.quest-ic { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--agent) 12%, transparent); color: var(--agent); }
