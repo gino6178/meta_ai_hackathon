@@ -1,5 +1,6 @@
-// Play: say you want to play, and the agent does the tedious part. Muse Glimmer reads the request ("doubles on
-// Thursday evening", "我週六早上想打球", "challenge Kenji") into a structured intent; code then searches the venues'
+// Play: say you want to play, and the agent does the tedious part, for any sport the club's venues have (badminton,
+// tennis, pickleball, table tennis, basketball, volleyball). Muse Glimmer reads the request ("doubles on Thursday
+// evening", "tennis with Ines on Saturday", "我週六早上想打球", "challenge Kenji") into a structured intent; code then searches the venues'
 // free courts and the club members who are free then, scores partners (requested friends, someone whose attack lands
 // in your weak zone, format, level, how far they live from the court), lines up everyone's calendars and picks the
 // venue in the middle: the one where the longest trip is shortest. It keeps the three best different options.
@@ -97,6 +98,12 @@ const freeAt = (wins, date, start, minutes) => wins.some((w) => w.day === date.g
 
 // ---- reading the request --------------------------------------------------------------------------------------
 const PARTS = { morning: ["08:00", "12:00"], afternoon: ["13:00", "18:00"], evening: ["18:00", "22:00"], tonight: ["18:00", "22:00"] };
+export const SPORTS = ["badminton", "tennis", "pickleball", "table tennis", "basketball", "volleyball"];
+const SPORT_RX = [["table tennis", /table tennis|ping ?pong|桌球|乒乓/i], ["tennis", /tennis|網球/i], ["pickleball", /pickleball|匹克球/i], ["basketball", /basketball|hoops|籃球/i], ["volleyball", /volleyball|排球/i], ["badminton", /badminton|羽球|羽毛球/i]];
+const sportIn = (text) => SPORT_RX.find(([, rx]) => rx.test(text))?.[0] || null;
+// a venue's courts and price for one sport (venues list theirs under `sports`; a venue without the sport is skipped)
+const forSport = (v, sport) => (v.sports ? (v.sports[sport] ? { ...v, courts: v.sports[sport].courts, price: v.sports[sport].price } : null) : sport === "badminton" ? v : null);
+const plays = (m, sport) => (m.sports || ["badminton"]).includes(sport);
 function ruleIntent(text, members, now, opp) {
   const t = text.toLowerCase(), days = [];
   const zh = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 日: 0, 天: 0 };
@@ -112,14 +119,15 @@ function ruleIntent(text, members, now, opp) {
   const minutes = /2\s*(h|hours?|小時)|兩小時|120/.test(t) ? 120 : /1\s*(h|hour)|一小時|60\s*min/.test(t) ? 60 : 90;
   const like = /plays? like|like (my |the )?(next )?opponent|sparring|像.*(對手|打法)|對手.*(風格|打法)|模擬對手|陪練/i.test(text) || (opp && text.toLowerCase().includes(opp.toLowerCase().split(" ")[0])) ? "opponent" : null;
   const challenge = /challenge|rematch|\bvs\.?\b|versus|約戰|挑戰|單挑|對打/i.test(text);
-  return { days: [...new Set(dates)], from: part ? PARTS[part][0] : null, to: part ? PARTS[part][1] : null, minutes, format, with: withIds, focus: null, like, challenge, note: "" };
+  return { days: [...new Set(dates)], from: part ? PARTS[part][0] : null, to: part ? PARTS[part][1] : null, minutes, format, with: withIds, focus: null, like, challenge, note: "", sport: sportIn(text) || "badminton" };
 }
 
 async function readIntent(text, members, now, opp) {
-  const sys = `Turn a player's request to play badminton into JSON. Now: ${DAYS[now.getDay()]} ${ymd(now)} ${hm(now.getHours() * 60 + now.getMinutes())}.
+  const sys = `Turn a player's request to play a sport into JSON. Now: ${DAYS[now.getDay()]} ${ymd(now)} ${hm(now.getHours() * 60 + now.getMinutes())}.
 Club members (id: name): ${members.map((m) => `${m.id}: ${m.name}`).join("; ")}.
 Their next opponent is ${opp}.
-Return JSON only: {"days": ["YYYY-MM-DD", ...], "from": "HH:MM" or null, "to": "HH:MM" or null, "minutes": 60 | 90 | 120, "format": "doubles" | "singles" | "any", "with": [member ids], "focus": string or null, "like": "opponent" or null, "challenge": true | false, "note": string}
+Return JSON only: {"sport": ${SPORTS.map((s) => `"${s}"`).join(" | ")}, "days": ["YYYY-MM-DD", ...], "from": "HH:MM" or null, "to": "HH:MM" or null, "minutes": 60 | 90 | 120, "format": "doubles" | "singles" | "any", "with": [member ids], "focus": string or null, "like": "opponent" or null, "challenge": true | false, "note": string}
+- "sport": the sport they name; "badminton" if they do not name one. For basketball and volleyball, "doubles" means two against two.
 - "days": the dates the player means, within the next 14 days; [] if they did not say (any day this week).
 - Morning 08:00-12:00, afternoon 13:00-18:00, evening or tonight 18:00-22:00. null if they did not say.
 - "minutes": 90 unless they say how long. "with": members they name. "focus": what they want to practise, if they say it.
@@ -139,6 +147,8 @@ Return JSON only: {"days": ["YYYY-MM-DD", ...], "from": "HH:MM" or null, "to": "
       format: ["doubles", "singles"].includes(j.format) ? j.format : "any",
       with: (Array.isArray(j.with) ? j.with : []).filter((id) => members.some((m) => m.id === id)),
       focus: typeof j.focus === "string" && j.focus.length < 80 ? j.focus : null, like: j.like === "opponent" ? "opponent" : null, challenge: j.challenge === true, note: typeof j.note === "string" ? j.note.slice(0, 160) : "",
+      // the sport named in the words wins over the model's guess (it defaults to badminton)
+      sport: sportIn(text) || (SPORTS.includes(j.sport) ? j.sport : "badminton"),
     };
     return { intent, by: "model", timing: r.timing };
   } catch (e) {
@@ -165,16 +175,18 @@ function partnerScore(m, ctx) {
 }
 
 export function search({ intent, you, club, venues, now }) {
-  const members = club.members, myWins = windows(club.you?.free), me = { id: "you", name: "You", area: club.you?.area, free: club.you?.free };
+  const sport = intent.sport || "badminton", members = club.members.filter((m) => plays(m, sport)), myWins = windows(club.you?.free), me = { id: "you", name: "You", area: club.you?.area, free: club.you?.free };
   const dates = intent.days.length ? intent.days : Array.from({ length: 7 }, (_, i) => { const d = new Date(now); d.setDate(d.getDate() + i); return ymd(d); });
   // sparring against a look-alike of the next opponent is singles; otherwise, with a sore knee, doubles first
-  const opp = intent.like === "opponent" ? opponentStyle() : null;
+  const opp = intent.like === "opponent" && sport === "badminton" ? opponentStyle() : null;
   const want = intent.format !== "any" ? intent.format : intent.challenge ? (intent.with.length >= 3 ? "doubles" : "singles") : opp ? "singles" : you.limit ? "doubles" : "any";
   const opts = [], openBy = {};
   let looked = 0, open = 0;
   for (const ds of dates) {
     const date = dateOf(ds), isToday = ds === ymd(now), nowMin = now.getHours() * 60 + now.getMinutes();
-    for (const v of venues.venues) {
+    for (const v0 of venues.venues) {
+      const v = forSport(v0, sport);
+      if (!v) continue;
       const [o, c] = demoVenues.hours(v, date).map(toMin);
       const from = Math.max(o, intent.from ? toMin(intent.from) : o, isToday ? Math.ceil((nowMin + 60) / 30) * 30 : 0);
       const to = Math.min(c, intent.to ? toMin(intent.to) : c);
@@ -198,7 +210,7 @@ export function search({ intent, you, club, venues, now }) {
         opts.push({
           id: `${v.id}-${ds}-${hm(start)}`, date: ds, day: DAYS[date.getDay()], start: hm(start), end: hm(start + intent.minutes), minutes: intent.minutes,
           venue: { id: v.id, name: v.name, area: v.area, km: travel.find((t) => t.id === "you")?.km ?? null, x: v.x, y: v.y }, court: courts[0], courtsFree: courts.length, travel, longest,
-          format: need === 1 ? "singles" : "doubles", players, price: v.price, total, each: Math.round(total / players),
+          format: need === 1 ? "singles" : "doubles", sport, players, price: v.price, total, each: Math.round(total / players),
           partners: pick.map((p) => ({ id: p.m.id, name: p.m.name, level: p.m.level, why: p.why.slice(0, 2) })),
           spare: free.slice(need, need + 4).map((p) => p.m.id), asked: intent.with.filter((id) => pick.some((p) => p.m.id === id)), score: +score.toFixed(2),
         });
@@ -222,12 +234,12 @@ export function search({ intent, you, club, venues, now }) {
     const week = Array.from({ length: 7 }, (_, i) => { const d = new Date(now); d.setDate(d.getDate() + i); return ymd(d); });
     cal = { ...calendar(people, week.includes(best.date) ? week : [...week.slice(1), best.date]), pick: { date: best.date, from: toMin(best.start), to: toMin(best.end) } };
     const date = dateOf(best.date);
-    middle = venues.venues.map((v) => {
+    middle = venues.venues.map((v0) => forSport(v0, sport)).filter(Boolean).map((v) => {
       const longest = Math.max(0, ...people.filter((x) => x.area).map((x) => travelMin(x.area, v)));
       return { id: v.id, name: v.name, longest, free: demoVenues.freeCourts(v, date, toMin(best.start), best.minutes).length > 0 };
     }).sort((a, b) => a.longest - b.longest);
   }
-  return { options: out, looked, open, openBy, dates: dates.length, want, opp, calendar: cal, middle };
+  return { options: out, looked, open, openBy, dates: dates.length, want, opp, calendar: cal, middle, sport, venues: venues.venues.filter((v) => forSport(v, sport)).length };
 }
 
 // ---- the words: proposal and invites ------------------------------------------------------------------------
@@ -255,8 +267,8 @@ async function words(o, you, challenge = false) {
   const style = o.partners.map((p) => p.why.find((w) => /style match/.test(w))).filter(Boolean);
   const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], d = dateOf(o.date), when = `${o.day} ${d.getDate()} ${MON[d.getMonth()]}`;
   const mine = (o.travel || []).find((t) => t.id === "you"), trip = (id) => (o.travel || []).find((t) => t.id === id);
-  const sys = `You write for Serve, a badminton app whose agent books courts and invites friends.
-The game: ${o.format}, ${when}, ${o.start}-${o.end}, ${o.venue.name}, court ${o.court}, NT$${o.each} each, pay at the venue.${mine ? ` The player's trip there: ${mine.min} min. The venue was picked so the longest trip (${o.longest} min) is as short as possible.` : ""}
+  const sys = `You write for Serve, a sports club app whose agent books courts and invites friends.
+The game: ${o.sport || "badminton"} ${o.format}, ${when}, ${o.start}-${o.end}, ${o.venue.name}, court ${o.court}, NT$${o.each} each, pay at the venue.${mine ? ` The player's trip there: ${mine.min} min. The venue was picked so the longest trip (${o.longest} min) is as short as possible.` : ""}
 Partners: ${o.partners.map((p) => `${p.id} (${p.name}): ${p.why.join("; ") || "free at that time"}${trip(p.id) ? `; their own trip: ${trip(p.id).min} min` : ""}`).join(" | ")}
 ${you.limit ? `The player has a health limit (${you.limit}); doubles is easier on it.` : ""}
 Return JSON only: {"message": string, "invites": {"<partner id>": string}}
@@ -293,7 +305,7 @@ export async function plan({ text = "", you = {}, onStep } = {}) {
     map: { you: club.you?.area, people: club.members.filter((m) => m.area).map((m) => ({ id: m.id, name: m.name, x: m.area.x, y: m.area.y })), venues: venues.venues.map((v) => ({ id: v.id, name: v.name, x: v.x, y: v.y, courts: v.courts })) } });
   work(`Checking courts at ${venues.venues.length} venues`);
   const s = search({ intent: it.intent, you: me, club, venues, now });
-  tell({ step: "Checked the courts", tool: "search_courts", detail: `${s.looked} court times at ${venues.venues.length} venues over ${s.dates} day${s.dates > 1 ? "s" : ""}; ${s.open} had a free court`, free: s.openBy });
+  tell({ step: "Checked the courts", tool: "search_courts", detail: `${s.sport !== "badminton" ? `${s.sport}: ` : ""}${s.looked} court times at ${s.venues} venue${s.venues === 1 ? "" : "s"} over ${s.dates} day${s.dates > 1 ? "s" : ""}; ${s.open} had a free court`, free: s.openBy });
   if (s.opp) tell({ step: `Matched ${s.opp.name}'s style`, tool: "match_style", detail: `their shot mix in your match (${s.opp.shots} shots, mostly ${Object.entries(s.opp.mix).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => NAMES[k] || k).join(", ")}) against every member's` });
   tell({ step: "Found people who are free", tool: "find_players", detail: s.options.length ? `${s.want === "any" ? "best format" : s.want} with club members who are free then, matched on level, format, how far they live and the shot that beats you` : "nobody fits those times yet" });
   const b0 = s.options[0];
@@ -367,6 +379,9 @@ export function status(id) {
   save();
   return { ...b, yes, pending, invites: b.invites.map(({ accept, ...x }) => ({ ...x, status: x.answered ? (accept ? "in" : "out") : "sent" })) };
 }
+
+// the games on the book (for the Autopilot: what this week already has)
+export const bookings = () => db.bookings.filter((b) => !b.cancelled).map((b) => status(b.id));
 
 // for the best-match agent and agent-to-agent scheduling (match.js)
 export const helpers = { windows, travelMin, kmBetween, ymd, hm, toMin, dateOf, readVenues, DAYS };

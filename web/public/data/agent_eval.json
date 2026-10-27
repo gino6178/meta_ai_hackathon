@@ -1,0 +1,11 @@
+{
+ "at": "2026-10-27T10:18:11.386Z",
+ "runs": 8,
+ "ok": 8,
+ "seconds": 153.9,
+ "modelCalls": 16.6,
+ "toolCalls": 8.1,
+ "peak": 4,
+ "refused": 3,
+ "rules": 1
+}

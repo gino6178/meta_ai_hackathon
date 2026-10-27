@@ -67,7 +67,11 @@ export const clearPantry = (id) => store.update(id, (q) => { q.pantry = []; });
 // --- schedule ------------------------------------------------------------------------------------------------------
 export function addEvents(id, events) {
   const clean = events.map((e) => ({ id: Math.random().toString(36).slice(2, 8), date: e.date, start: /^\d\d:\d\d$/.test(e.start) ? e.start : "", end: /^\d\d:\d\d$/.test(e.end) ? e.end : "",
-    title: String(e.title || e.kind || "event").slice(0, 60), kind: ["training", "match", "exam", "travel"].includes(e.kind) ? e.kind : "other", at: Date.now() }));
+    title: String(e.title || e.kind || "event").slice(0, 60), kind: ["training", "match", "exam", "travel"].includes(e.kind) ? e.kind : "other", at: Date.now(),
+    // a game the Autopilot booked: who it is with and how long the court is booked, to learn from how long it ran
+    ...(Array.isArray(e.with) ? { with: e.with.slice(0, 4).map(String), booked: +e.booked || 90 } : {}),
+    // an outdoor court: where it is, so the agent can check the weather before the game
+    ...(e.place?.lat != null ? { place: { lat: +e.place.lat, lon: +e.place.lon, name: String(e.place.name || "").slice(0, 80), outdoor: !!e.place.outdoor }, sport: String(e.sport || "").slice(0, 20) } : {}) }));
   store.update(id, (q) => { q.events.push(...clean); q.events.sort((a, b) => at(a) - at(b)); q.events = q.events.filter((e) => at(e) > Date.now() - 14 * 864e5).slice(-80); });
   return clean;
 }

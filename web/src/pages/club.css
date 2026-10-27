@@ -250,3 +250,5 @@
 .a2a-book { align-items: center; }
 @media (max-width: 640px) { .a2a-thread li { max-width: 92%; } }
 @media (prefers-reduced-motion: reduce) { .a2a-thread li { animation: none; } .a2a-thread .dots i { animation: none; } }
+.row-inline { display: inline-flex; align-items: center; gap: 6px; } .row-inline input { width: 90px; }
+.report .good { color: var(--good); font-weight: 600; }

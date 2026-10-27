@@ -16,6 +16,9 @@ import Lab from "./pages/Lab.jsx";
 import Club from "./pages/Club.jsx";
 import Play from "./pages/Play.jsx";
 import You from "./pages/You.jsx";
+import Autopilot from "./pages/Autopilot.jsx";
+import Body from "./pages/Body.jsx";
+import Courts from "./pages/Courts.jsx";
 import { memory } from "./memory.js";
 import VoiceCoach from "./voice/VoiceCoach.jsx";
 import { loadSample } from "./data.js";
@@ -30,14 +33,17 @@ export function go(path) { location.hash = "/" + path; window.scrollTo(0, 0); }
 
 // Five tabs, the way a social app has them: the agent, the club, play, goals and you. The coaches are the inbox.
 const TABS = [
-  { k: "home", label: "Agent", icon: "spark", on: ["home"] },
+  { k: "home", label: "Agent", icon: "spark", on: ["home", "autopilot"] },
   { k: "club", label: "Club", icon: "coaches", on: ["club"] },
-  { k: "play", label: "Play", icon: "book", on: ["play"] },
+  { k: "play", label: "Play", icon: "book", on: ["play", "courts"] },
   { k: "goals", label: "Goals", icon: "goals", on: ["goals"] },
-  { k: "you", label: "You", icon: "you", on: ["you", "match", "report", "scout", "memory", "lab", "analyze", "processing"] },
+  { k: "you", label: "You", icon: "you", on: ["you", "body", "match", "report", "scout", "memory", "lab", "analyze", "processing"] },
 ];
 const INBOX = { k: "coaches", label: "Coaches", icon: "send", on: ["coaches", "coach", "roundtable", "messages"] };
 const MORE = [
+  { k: "autopilot", label: "Autopilot", note: "Your agent keeps you playing", icon: "spark" },
+  { k: "body", label: "Body log", note: "Tell your agent what hurts; your health app", icon: "heart" },
+  { k: "courts", label: "Courts near you", note: "Any sport, judged from reviews and weather", icon: "pin" },
   { k: "live", label: "Live court side", note: "Briefings between points", icon: "live" },
   { k: "analyze", label: "Analyze a video", note: "Add a match from this device", icon: "plus" },
   { k: "memory", label: "Player memory", note: "What the coaches remember", icon: "memory" },
@@ -191,6 +197,9 @@ export default function App() {
         {page === "goals" && <Club data={data} view="goals" />}
         {page === "play" && <Play data={data} />}
         {page === "you" && <You data={data} />}
+        {page === "autopilot" && <Autopilot data={data} />}
+        {page === "body" && <Body />}
+        {page === "courts" && <Courts />}
       </main>
       {!bare && <CheckBack />}
     </>

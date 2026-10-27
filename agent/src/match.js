@@ -12,6 +12,7 @@
 import { chat } from "./llm.js";
 import { readClub } from "./club.js";
 import { demoVenues, opponentStyle, styleMatch, helpers } from "./play.js";
+import { negotiate, okNums, PRONOUN } from "./a2a.js";
 
 const { windows, travelMin, kmBetween, ymd, hm, toMin, dateOf, readVenues, DAYS } = helpers;
 const first = (n) => n.split(" ")[0];
@@ -42,16 +43,6 @@ function court(slot, start, minutes, people, venues) {
     out.push({ v, court: courts[0], courtsFree: courts.length, travel, longest: Math.max(0, ...travel.map((t) => t.min)) });
   }
   return out.sort((a, b) => a.longest - b.longest)[0] || null;
-}
-// an option in the shape Play books (play.book)
-function option(slot, start, minutes, c, m, format, agreed) {
-  const total = Math.round((c.v.price * minutes) / 60), players = format === "doubles" ? 4 : 2;
-  return {
-    id: `${c.v.id}-${slot.date}-${hm(start)}`, date: slot.date, day: slot.day, start: hm(start), end: hm(start + minutes), minutes,
-    venue: { id: c.v.id, name: c.v.name, area: c.v.area, km: c.travel.find((t) => t.id === "you")?.km ?? null, x: c.v.x, y: c.v.y }, court: c.court, courtsFree: c.courtsFree,
-    travel: c.travel, longest: c.longest, format, players, price: c.v.price, total, each: Math.round(total / players),
-    partners: [{ id: m.id, name: m.name, level: m.level, why: ["your agents agreed the time"] }], spare: [], asked: [m.id], agreed: agreed ? [m.id] : [],
-  };
 }
 
 // ---- best match -------------------------------------------------------------------------------------------------
@@ -109,78 +100,14 @@ Speak to the player as "you"; call the other player "${first(t.name)}", never "h
 }
 
 // ---- agent to agent ---------------------------------------------------------------------------------------------
-const parse = (t) => { try { return JSON.parse((String(t).match(/\{[\s\S]*\}/) || ["null"])[0]); } catch { return null; } };
-// like every reply in the app, an agent's message may only use numbers that are in the checked offer
-const nums = (t) => String(t).match(/\d+(?:[.:]\d+)?/g) || [];
-const allowedIn = (...texts) => new Set(texts.flatMap((t) => nums(t)));
-const okNums = (t, allowed) => nums(t).every((n) => allowed.has(n));
-const PRONOUN = /\b(he|she|him|his|her|hers)\b/i;
-export async function talk({ with: id, format = "singles", you = {}, onStep } = {}) {
-  const say = (m) => onStep?.({ type: "a2a", ...m }), tell = (s) => onStep?.({ type: "step", ...s }), work = (step) => onStep?.({ type: "working", step });
+// one member's agent, through the same engine the Autopilot uses for a doubles four (a2a.js)
+export async function talk({ with: id, format = "singles", sport = "badminton", you = {}, onStep } = {}) {
+  const say = (m) => onStep?.({ type: "a2a", ...m, to: Array.isArray(m.to) ? m.to[0] : m.to }), tell = (s) => onStep?.({ type: "step", ...s }), work = (step) => onStep?.({ type: "working", step });
   const club = readClub(), venues = readVenues(), m = club.members.find((x) => x.id === id);
   if (!m) throw new Error("unknown member");
-  const me = { id: "you", name: "You", area: club.you.area, free: club.you.free }, them = first(m.name);
-  const times = shared(club.you.free, m.free);
-  tell({ step: `Opened a channel to ${them}'s agent`, tool: "a2a", detail: `agent to agent: each side shares only free times, format and limits; ${times.length} shared time${times.length === 1 ? "" : "s"} this week` });
-  if (!times.length) throw new Error(`You and ${them} have no free time in common this week.`);
-  const fits = (date, start) => { const s = times.find((x) => x.date === date && x.from <= start && start + 90 <= x.to); return s && court(s, start, 90, [me, m], venues) ? s : null; };
-  const offer = (s, start) => { const c = court(s, start, 90, [me, m], venues); return c && { slot: s, start, c, text: `${when(s.date, hm(start))}–${hm(start + 90)} at ${c.v.name}, court ${c.court} (trips: you ${c.travel.find((x) => x.id === "you")?.min} min, ${them} ${c.travel.find((x) => x.id === m.id)?.min} min)` }; };
-  const choices = times.map((s) => offer(s, s.from)).filter(Boolean);
-  if (!choices.length) throw new Error(`No court is free when you and ${them} are both free this week.`);
-  const allowed = allowedIn(...choices.map((x) => x.text), ...m.free, you.limit || "");
-  const log = [];
-  const brief = `${m.name}'s agent. ${m.name} plays ${m.prefers === "any" ? "singles or doubles" : m.prefers}, level ${m.level}, club rating ${m.rating}. Free: ${m.free.join(", ")}.${m.limit ? ` Health limit: ${m.limit}.` : ""} ${m.agent || ""}`;
-  // your agent opens with the earliest time that suits you both, at the venue in the middle
-  let cur = choices[0];
-  work("Your agent is writing the proposal on Muse Glimmer");
-  const open = await write(`You are the player's own scheduling agent in a badminton club app, writing to ${them}'s agent (another AI agent). Propose ${format}: ${cur.text}. Also possible: ${choices.slice(1, 3).map((x) => x.text).join("; ") || "nothing else this week"}.${you.limit ? ` Your player has a health limit: "${you.limit}".` : ""} One or two short sentences, polite and to the point, addressed to ${them}'s agent (not to ${them}), as one agent to another. Call people by first name, never "he" or "she". Use the times exactly as written. English only.`, `Proposing ${format} ${cur.text}.`, allowed);
-  log.push({ from: "you", intent: "propose", when: cur.text, text: open });
-  say({ from: "you", to: m.id, intent: "propose", when: cur.text, text: open });
-  // their agent answers, and every time it names is checked; at most three rounds
-  for (let round = 0; round < 3; round++) {
-    work(`${them}'s agent is answering`);
-    const sys = `You are ${brief}
-You negotiate a badminton game for ${them} with another player's agent. You may accept a time, or counter with one time that suits ${them} better, or decline.
-The other agent's options this week (all fit both calendars): ${choices.map((x) => `${x.slot.date} ${hm(x.start)} = ${x.text}`).join(" | ")}.
-Return JSON only: {"intent": "accept" | "counter" | "decline", "date": "YYYY-MM-DD", "start": "HH:MM", "text": string}
-- "text": one or two short sentences, as one agent to another, about ${them}'s wishes. Call ${them} by name, never "he" or "she". English only.
-- For "counter", date and start must be one of the options above, or another time inside ${them}'s free times.`;
-    const msgs = [{ role: "system", content: sys }, ...log.map((x) => ({ role: x.from === "you" ? "user" : "assistant", content: x.from === "you" ? x.text : JSON.stringify({ intent: x.intent, text: x.text }) }))];
-    let j = null;
-    try { j = parse((await chat(msgs, { maxTokens: 260, temperature: 0.5 })).text); } catch { /* their agent did not answer */ }
-    if (!j || !["accept", "counter", "decline"].includes(j.intent)) j = { intent: "accept", text: `${them} can do ${cur.text}.`, by: "rules" };
-    if (j.intent === "counter" && j.date === cur.slot.date && toMin(j.start || "00:00") === cur.start) j.intent = "accept";
-    if (!okNums(j.text, allowedIn(...choices.map((x) => x.text), ...m.free, j.date || "", j.start || "")) || PRONOUN.test(j.text)) j.text = j.intent === "accept" ? `${them} can do it.` : j.intent === "counter" ? `${them} would rather play at another time.` : `${them} can't this week.`;
-    if (j.intent === "decline") { log.push({ from: m.id, intent: "decline", text: j.text }); say({ from: m.id, to: "you", intent: "decline", text: j.text }); return { agreed: null, log, reason: j.text }; }
-    if (j.intent === "counter") {
-      const s = fits(j.date, toMin(j.start || "00:00"));
-      const o = s && offer(s, toMin(j.start));
-      if (!o) {
-        log.push({ from: m.id, intent: "counter", when: `${j.date} ${j.start}`, text: j.text, checked: false });
-        say({ from: m.id, to: "you", intent: "counter", when: `${j.date} ${j.start}`, text: j.text, checked: false });
-        const facts = `That time does not fit: it is outside your player's free times or no court is free then. Still possible: ${choices.slice(0, 3).map((x) => x.text).join("; ")}.`;
-        log.push({ from: "you", intent: "propose", when: cur.text, text: facts }); say({ from: "you", to: m.id, intent: "propose", when: cur.text, text: facts, checked: true });
-        continue;
-      }
-      cur = o;
-      log.push({ from: m.id, intent: "counter", when: cur.text, text: j.text, checked: true });
-      say({ from: m.id, to: "you", intent: "counter", when: cur.text, text: j.text, checked: true });
-      work("Your agent is checking the new time");
-      const yes = await write(`You are the player's own scheduling agent writing to ${them}'s agent. Their counter-offer, ${cur.text}, fits your player's calendar and a court is free. Accept it in one short sentence, as one agent to another. Use the time exactly as written. English only.`, `Agreed: ${cur.text}.`, allowedIn(cur.text));
-      log.push({ from: "you", intent: "accept", when: cur.text, text: yes }); say({ from: "you", to: m.id, intent: "accept", when: cur.text, text: yes, checked: true });
-      break;
-    }
-    log.push({ from: m.id, intent: "accept", when: cur.text, text: j.text }); say({ from: m.id, to: "you", intent: "accept", when: cur.text, text: j.text, checked: true });
-    break;
-  }
-  const agreed = option(cur.slot, cur.start, 90, cur.c, m, format, true);
-  tell({ step: "Both agents agreed", tool: "verify", detail: `${cur.text}; checked against both calendars and the court's timetable` });
-  return { agreed, log, with: { id: m.id, name: m.name } };
-}
-async function write(sys, fallback, allowed) {
-  try {
-    const r = await chat([{ role: "system", content: sys }, { role: "user", content: "Write it." }], { maxTokens: 200, temperature: 0.5 });
-    const t = r.text.trim().replace(/^"|"$/g, "");
-    return t && (!allowed || okNums(t, allowed)) && !PRONOUN.test(t) ? t : fallback;
-  } catch { return fallback; }
+  const me = { id: "you", name: "You", area: club.you.area, free: club.you.free };
+  tell({ step: `Opened a channel to ${first(m.name)}'s agent`, tool: "a2a", detail: "agent to agent: each side shares only free times, format and limits" });
+  const r = await negotiate({ me, members: [m], venues, format, sport, limit: you.limit, say, tell, work });
+  if (!r.agreed && !r.rounds) throw new Error(r.reason.replace(/^./, (c) => c.toUpperCase()) + ".");
+  return { agreed: r.agreed, log: r.log, with: { id: m.id, name: m.name }, reason: r.agreed ? undefined : r.reason };
 }

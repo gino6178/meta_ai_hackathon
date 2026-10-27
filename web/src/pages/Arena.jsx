@@ -186,16 +186,16 @@ export function Challenges({ club, members, r, rec, g, you, me }) {
   const openReport = (b) => {
     const ids = b.invites.filter((i) => i.status === "in").map((i) => i.id).filter((id) => byId[id]);
     const singles = b.option.format === "singles";
-    setRep({ id: b.id, label: `${b.option.format} · ${b.option.day} ${b.option.start} · ${b.option.venue.name}`, format: b.option.format, players: ids, partner: singles ? null : ids[0] ?? null, vs: singles ? ids.slice(0, 1) : ids.slice(1, 3), won: true, score: "" });
+    setRep({ id: b.id, label: `${b.option.format} · ${b.option.day} ${b.option.start} · ${b.option.venue.name}`, format: b.option.format, players: ids, partner: singles ? null : ids[0] ?? null, vs: singles ? ids.slice(0, 1) : ids.slice(1, 3), won: true, score: "", booked: b.option.minutes || 90, played: b.option.minutes || 90, start: b.option.start, sport: b.option.sport || "badminton" });
   };
-  const logOne = () => setRep({ id: `m-${Date.now()}`, label: "A game played outside the app", format: "singles", players: club.members.map((m) => m.id), partner: null, vs: [club.members[0].id], won: true, score: "", free: true });
+  const logOne = () => setRep({ id: `m-${Date.now()}`, label: "A game played outside the app", format: "singles", players: club.members.map((m) => m.id), partner: null, vs: [club.members[0].id], won: true, score: "", free: true, booked: 90, played: 90 });
   const submit = (e) => {
     e.preventDefault();
     const x = rep, vs = x.vs.filter(Boolean);
     if (!vs.length) return;
     const mine = x.partner ? (r.you + r[x.partner]) / 2 : r.you, theirs = vs.reduce((s, id) => s + r[id], 0) / vs.length;
     const st = stakes(mine, theirs), d = x.won ? st.win : -st.loss;
-    const res = { id: x.id, vs, partner: x.partner, won: x.won, score: x.score.trim(), at: Date.now(), gap: Math.round(theirs - mine), d };
+    const res = { id: x.id, vs, partner: x.partner, won: x.won, score: x.score.trim(), at: Date.now(), gap: Math.round(theirs - mine), d, booked: x.booked || 90, played: +x.played || x.booked || 90, start: x.start, sport: x.sport };
     patch((s) => ({ ...s, results: [...s.results, res] }));
     const names = vs.map((id) => first(byId[id].name)).join(" and ");
     postToClub({ kind: "result", coach: "analyst", text: `${x.won ? "Beat" : "Lost to"} ${names}${x.partner ? ` with ${first(byId[x.partner].name)}` : ""}${res.score ? ` ${res.score}` : ""} (${d > 0 ? "+" : ""}${d} club rating).`, reply: x.won ? (res.gap >= 100 ? "A win against a higher rating: that is the biggest jump the table gives." : "Good win. Log what worked while you still remember it.") : "Close games against a higher rating still move you forward. Ask me what decided it." });
@@ -333,6 +333,8 @@ export function Challenges({ club, members, r, rec, g, you, me }) {
                 <label className="tiny">My partner <select value={rep.partner ?? ""} onChange={(e) => { const p = e.target.value; setRep({ ...rep, partner: p, vs: rep.players.filter((id) => id !== p).slice(0, 2) }); }}>{rep.players.map((id) => <option key={id} value={id}>{byId[id].name}</option>)}</select></label>
               )}
               <label className="tiny">Score (optional) <input value={rep.score} onChange={(e) => setRep({ ...rep, score: e.target.value })} placeholder="21–17 19–21 21–15" /></label>
+              <label className="tiny">How long did you play? <span className="row-inline"><input type="number" min="15" max="300" step="5" value={rep.played} onChange={(e) => setRep({ ...rep, played: e.target.value })} /> min of {rep.booked} booked</span>
+                {+rep.played - rep.booked >= 15 && <span className="tiny good">You kept playing: the Autopilot will pair you up again.</span>}</label>
               {(() => { const vs = rep.vs.filter(Boolean); if (!vs.length) return null; const mine = rep.partner ? (r.you + r[rep.partner]) / 2 : r.you, th = vs.reduce((s, id) => s + r[id], 0) / vs.length, st = stakes(mine, th); return <p className="tiny muted">Against {vs.map((id) => first(byId[id].name)).join(" & ")} ({Math.round(th)}): {rep.won ? `+${st.win}` : `−${st.loss}`} to your rating.</p>; })()}
               <div className="cta-row"><button className="btn primary sm">Save the result</button><button type="button" className="btn ghost sm" onClick={() => setRep(null)}>Cancel</button></div>
             </form>

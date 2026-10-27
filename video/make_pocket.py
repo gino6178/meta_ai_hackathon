@@ -1,4 +1,4 @@
-"""Build scenes/pocket.html, the 24-hour coach in Messenger, from the end-to-end test's real conversation
+"""Build scenes/pocket.html, your agent in Messenger, from the end-to-end test's real conversation
 (agent/test/e2e.mjs on the GPU server writes the transcript). Fact tags like [F12] are taken out of the bubbles; the
 words are the coaches' own.
   python make_pocket.py build/pocket_transcript.json"""
@@ -11,38 +11,33 @@ coach = [x["text"] for x in t if x["from"] == "coach"]
 player = [x["text"] for x in t if x["from"] == "player"]
 find = lambda pred: next(x for x in coach if pred(x))
 
-plan = find(lambda x: "round table" in x)
-goals = re.findall(r"• (.+)", plan)
-days = re.findall(r"^(Mon|Tue|Wed|Thu|Fri|Sat|Sun): (.+)$", plan, re.M)
-cal = find(lambda x: x.startswith("In your calendar"))
-kitchen = find(lambda x: x.startswith("Added to your kitchen"))
+# the Autopilot's week, booked with a tap; what hurts, filed; a health export shared to the chat; the check-in after
+onit = find(lambda x: x.startswith("On it"))
+ask = next(x for x in t if x["from"] == "coach" and x.get("buttons") and "Book" in " ".join(x["buttons"]))
+booked = find(lambda x: x.startswith("Booked:"))
 coming = find(lambda x: x.startswith("Coming up"))
-mei = find(lambda x: x.startswith("Coach Mei"))
-check = find(lambda x: x.startswith("How did today"))
-logged = find(lambda x: x.startswith("Logged for"))
-kai = find(lambda x: x.startswith("Coach Kai"))
-
-mei_paras = [p for p in mei.split("\n\n") if not p.startswith("Sources")]
-mei_meal = clean(next(p for p in mei_paras if re.search(r"chicken|rice|broccoli", p, re.I)))
-kai_paras = [clean(p) for p in kai.split("\n\n")]
-short = lambda d: d.split(";")[0].split(" (")[0]
+hurt_said = next(x for x in player if "knee is sore" in x)
+hurt = find(lambda x: x.startswith("Logged: right knee") and "doubles" in x)
+read = find(lambda x: x.startswith("Read your"))
+checkin = next(x for x in t if x["from"] == "coach" and x["text"].startswith("How is your"))
+after = [x for x in coach if x.startswith("Logged: right knee")][-1]
+# the first n lines of a message, as bubble HTML
+first = lambda s, n=2: "<br>".join([html.escape(l) for l in clean(s).split("\n") if l.strip()][:n])
 
 S = [
-    (300, "day", "Monday"),
-    (600, "bot", "<b>Your coaches met at the round table and agreed this week.</b><br><br>Goals:<br>" + "<br>".join("• " + html.escape(g) for g in goals)
-        + "<br><br>" + "<br>".join(f"<b>{d}</b>: {html.escape(short(x))}…" for d, x in days[:3]) + "<br><span class=more>See the whole week</span>", 0),
-    (3300, "me", html.escape(player[1])),
-    (4200, "bot", html.escape(clean(cal).replace("\n• ", " ").replace("\nSee the week with /week.", "").replace("\n", ". "))),
-    (5600, "me", html.escape(player[2])),
-    (6400, "bot", html.escape(clean(kitchen))),
-    (7800, "day", "Wednesday 18:00"),
-    (8100, "bot", html.escape(clean(coming).split("\n")[0].replace(" (training)", "")), 1),
-    (9000, "bot", "<b>Coach Mei</b> " + html.escape(mei_meal.replace("Coach Mei: ", "")), None, ["👍 Helpful", "👎 Not helpful"]),
-    (11200, "day", "Wednesday 21:00"),
-    (11500, "bot", html.escape(clean(check).split(" I'll log")[0]), 2),
-    (12800, "me", html.escape(player[3])),
-    (13600, "bot", html.escape(clean(logged))),
-    (14600, "bot", "<b>Coach Kai</b> " + html.escape(kai_paras[0].replace("Coach Kai: ", "")) + " " + html.escape(kai_paras[-1])),
+    (300, "me", html.escape(next(x for x in player if x.startswith("Line up")))),
+    (1000, "bot", html.escape(clean(onit).split(". I'll")[0] + "."), 0),
+    (2600, "bot", first(ask["text"], 4), None, ask["buttons"]),
+    (4300, "me", html.escape(ask["buttons"][0])),
+    (5000, "bot", first(booked, 3)),
+    (6300, "me", html.escape(hurt_said)),
+    (7100, "bot", first(hurt, 2), 1),
+    (8500, "me", "📎 serve_sample_health_export.zip"),
+    (9300, "bot", html.escape(clean(read).split("\n")[0]), 2),
+    (10800, "day", "Two days later"),
+    (11100, "bot", html.escape(checkin["text"]), None, checkin["buttons"]),
+    (12400, "me", html.escape(checkin["buttons"][1])),
+    (13000, "bot", first(after, 1)),
 ]
 
 page = """<!doctype html>
@@ -95,17 +90,17 @@ page = """<!doctype html>
 <div class="phone"><div class="screen">
   <div class="bar"></div>
   <div class="head"><span class="back">‹</span><div class="ava"><svg viewBox="0 0 64 64"><path d="M10 48 C 22 8, 42 8, 54 30" /><circle cx="54" cy="30" r="5" /></svg></div>
-    <div><b>Serve coaches</b><span>Active now</span></div><img class="ms" src="messenger.svg" alt=""></div>
+    <div><b>Serve</b><span>Your agent · active now</span></div><img class="ms" src="messenger.svg" alt=""></div>
   <div class="log" id="log"></div>
   <div class="input">Aa</div>
 </div></div>
 <div class="note">Real replies on Muse Glimmer through the Messenger webhook, from its end-to-end test</div>
 <div class="side">
   <div class="tag"><img src="messenger.svg" alt="">Facebook Messenger</div>
-  <h1>A 24-hour coach<br>in your pocket</h1>
-  <div class="feat" id="f0"><i></i><div><b>Your week, planned for you</b><span>The round table's plan, sent to your phone</span></div></div>
-  <div class="feat" id="f1"><i></i><div><b>A nudge before every session</b><span>With a meal from what's in your kitchen</span></div></div>
-  <div class="feat" id="f2"><i></i><div><b>A check-in after</b><span>Logs what you did, and tomorrow adapts</span></div></div>
+  <h1>Your agent,<br>in Messenger</h1>
+  <div class="feat" id="f0"><i></i><div><b>Your week, one tap</b><span>Agreed with the other players' agents first</span></div></div>
+  <div class="feat" id="f1"><i></i><div><b>Tell it what hurts</b><span>Your games are planned around it</span></div></div>
+  <div class="feat" id="f2"><i></i><div><b>Share your health app</b><span>Workouts filed, and a check-in two days later</span></div></div>
 </div>
 <script>
 const S = __S__;
@@ -124,7 +119,7 @@ for (const [t, kind, text, f, btns] of S) {
     if (f != null) document.querySelectorAll(".feat").forEach((x, i) => { x.classList.toggle("on", i === f); if (i <= f) x.classList.add("seen"); });
   }, t);
 }
-setTimeout(() => document.querySelectorAll(".feat").forEach((x) => x.classList.add("on", "seen")), 16600);
+setTimeout(() => document.querySelectorAll(".feat").forEach((x) => x.classList.add("on", "seen")), 13800);
 </script>
 </body></html>
 """

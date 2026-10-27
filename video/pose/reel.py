@@ -1,13 +1,16 @@
-"""Your own video, made into a highlight: find you, read you, cut you out, and find your smash. Runs on the GPU
-server, called by the agent gateway (agent/src/reel.js) for a video the player uploads from the app.
-  python reel.py <in.mp4> <out.json>
+"""Your own video, made into a highlight: find you, read you, cut you out, and find your best moment. Runs on the GPU
+server, called by the agent gateway (agent/src/reel.js) for a video the player uploads from the app. Any ball sport:
+  racket sports (badminton, tennis, pickleball, table tennis): your fastest swing (overhead for a badminton smash)
+  basketball, volleyball: the top of your jump with your hands above your head (a jump shot, a spike)
+  soccer: your fastest kick
+  python reel.py <in.mp4> <out.json> [sport]
 Prints one JSON line per step ({"step", "detail"}) for the gateway to stream to the app.
 - Meta's DETR finds the people on every second frame. The largest person who stays in the picture is you; the next
   one is the other player.
 - Meta's Sapiens2 reads both players' pose and SAM 2.1 cuts each one out, every second frame, and every frame in the
   two and a half seconds around the smash, for the slow motion.
 - The smash is your fastest overhead swing: the moment your racket hand, above your head, moves fastest.
-Output: {fps, w, h, n, frames: [[you, other] or 0, ...], swings: [{t, speed}], smash: t, hand: m/s or null}
+Output: {fps, w, h, n, sport, kind, frames: [[you, other] or 0, ...], swings: [{t, speed}], smash: t (the moment), hand}
   Pixels are in the video's own frame, scaled to at most 960 px wide. A player is {"m": outline [x, y, ...],
   "k": 24 x [x, y, score]} or 0, keypoints as in people.py (COCO-17, big toes, heels, neck, index fingertips)."""
 import json, os, sys
@@ -19,6 +22,9 @@ from transformers import (DetrConfig, DetrForObjectDetection, DetrImageProcessor
                           Sapiens2ForPoseEstimation, Sapiens2ImageProcessor)
 
 src, out = sys.argv[1], sys.argv[2]
+SPORT = (sys.argv[3] if len(sys.argv) > 3 else "badminton").lower()
+KIND = {"badminton": "smash", "tennis": "shot", "pickleball": "shot", "table tennis": "shot", "squash": "shot", "basketball": "jump shot", "volleyball": "spike", "soccer": "kick", "football": "kick"}.get(SPORT, "shot")
+RACKET, JUMP, KICK = SPORT in ("badminton", "tennis", "pickleball", "table tennis", "squash"), SPORT in ("basketball", "volleyball"), SPORT in ("soccer", "football")
 dev = "cuda"
 PICK = [0, 1, 2, 3, 4, 5, 6, 7, 8, 62, 41, 9, 10, 11, 12, 13, 14, 15, 18, 17, 20, 69, 46, 25]
 SLOW = (1.5, 1.0)
@@ -189,7 +195,11 @@ read_all(set(range(0, N, 2)), "every second frame")
 say("Read your pose", "Sapiens2 read your body, feet and hands; SAM 2.1 cut you out of every frame")
 
 
-# 4 the smash: the fastest overhead swing of your racket hand, in body heights per second
+# 4 the moment, by sport, in body heights per second (a jump in body heights above your usual hip height)
+hips = sorted(((f[0]["k"][11][1] + f[0]["k"][12][1]) / 2) for f in got if f and f[0] and f[0]["k"][11][2] > 0.3 and f[0]["k"][12][2] > 0.3)
+hip0 = hips[len(hips) // 2] if hips else None
+
+
 def swing_speed(step):
     out = []
     idx = [i for i in range(0, N, step) if got[i] and got[i][0]]
@@ -199,11 +209,17 @@ def swing_speed(step):
         if not (ok(q, 0) and (ok(q, 15) or ok(q, 16))):
             continue
         body = max(1.0, max(q[15][1] if ok(q, 15) else 0, q[16][1] if ok(q, 16) else 0) - q[0][1])
-        best = 0.0
-        for w in (9, 10):
-            if ok(p, w) and ok(q, w) and q[w][1] < q[0][1]:  # the hand above the head
-                d = ((q[w][0] - p[w][0]) ** 2 + (q[w][1] - p[w][1]) ** 2) ** 0.5
-                best = max(best, d / body / ((b - a) / fps))
+        dt = (b - a) / fps
+        speed = lambda j: (((q[j][0] - p[j][0]) ** 2 + (q[j][1] - p[j][1]) ** 2) ** 0.5) / body / dt if ok(p, j) and ok(q, j) else 0.0
+        overhead = any(ok(q, w) and q[w][1] < q[0][1] for w in (9, 10))
+        if RACKET:  # the racket hand; a badminton smash is overhead, other racket sports count any swing (overhead more)
+            v = max(speed(9), speed(10))
+            best = (v if overhead else 0.0) if SPORT == "badminton" else v * (1.3 if overhead else 1.0)
+        elif JUMP:  # the top of a jump with the hands up
+            rise = (hip0 - (q[11][1] + q[12][1]) / 2) / body if hip0 and ok(q, 11) and ok(q, 12) else 0.0
+            best = max(0.0, rise) * 8 + (0.3 * max(speed(9), speed(10)) if overhead else 0.0) if overhead else 0.0
+        else:  # a kick: the fastest foot
+            best = max(speed(15), speed(16))
         out.append((b, best))
     return out
 
@@ -218,7 +234,7 @@ for k, (i, v) in enumerate(sp15):
 peaks.sort(key=lambda x: -x[1])
 swings = [{"t": round(i / fps, 2), "speed": round(v, 2)} for i, v in peaks[:5]]
 if not swings:
-    say("No smash found", "No swing with your hand above your head; the reel uses the whole clip")
+    say(f"No {KIND} found", "Nothing stood out; the reel uses the whole clip")
     smash = None
 else:
     smash = peaks[0][0]
@@ -227,9 +243,10 @@ else:
     near = [(i, v) for i, v in swing_speed(1) if a <= i <= b]
     if near:
         smash, top = max(near, key=lambda x: x[1])
-    say("Found your smash", f"your fastest overhead swing, at {smash / fps:.1f} s; every frame around it read for the slow motion")
+    how = {"smash": "your fastest overhead swing", "shot": "your fastest swing", "jump shot": "the top of your jump", "spike": "the top of your jump", "kick": "your fastest kick"}[KIND]
+    say(f"Found your {KIND}", f"{how}, at {smash / fps:.1f} s; every frame around it read for the slow motion")
 # hand speed in m/s, taking you as 1.7 m tall: an estimate from 2D pose, and lower than the racket head's
 hand = round(max((v for i, v in swing_speed(1) if smash and abs(i - smash) <= 2), default=0) * 1.7, 1) if smash else None
-json.dump({"fps": round(fps, 3), "w": W, "h": H, "n": N, "frames": got, "swings": swings, "smash": round(smash / fps, 3) if smash else None, "hand": hand or None},
+json.dump({"fps": round(fps, 3), "w": W, "h": H, "n": N, "sport": SPORT, "kind": KIND, "frames": got, "swings": swings, "smash": round(smash / fps, 3) if smash else None, "hand": hand or None},
           open(out, "w"), separators=(",", ":"))
 say("Ready", f"{sum(1 for f in got if f)} frames read")

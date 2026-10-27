@@ -17,9 +17,14 @@ const headers = { "content-type": "application/json", ...(KEY ? { authorization:
 export const device = () => process.env.LLM_DEVICE || (KEY ? "Meta Model API" : "local GPU");
 const debug = async (messages, response) => { if (process.env.LLM_DEBUG) (await import("node:fs")).appendFileSync(process.env.LLM_DEBUG, JSON.stringify({ messages, response }) + "\n"); };
 
+// every model call is counted, with how many ran at the same time (the agent runs read it for their reports)
+export const stats = { calls: 0, seconds: 0, inflight: 0, peak: 0 };
+const begin = () => { stats.calls++; stats.inflight++; stats.peak = Math.max(stats.peak, stats.inflight); return Date.now(); };
+const end = (t0) => { stats.inflight--; stats.seconds += (Date.now() - t0) / 1000; };
+
 export async function chat(messages, { maxTokens = 420, temperature = 0.4 } = {}) {
   const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), TIMEOUT);
-  const t0 = Date.now();
+  const t0 = begin();
   try {
     if (API === "ollama") {
       const r = await fetch(`${URL_.replace(/\/v1$/, "")}/api/chat`, {
@@ -43,8 +48,40 @@ export async function chat(messages, { maxTokens = 420, temperature = 0.4 } = {}
     await debug(messages, j);
     return { text: (j.choices[0].message.content || "").replace(THINK, "").trim(),
       timing: j.timing ?? { seconds: +secs.toFixed(2), tokens_per_s: n ? +(n / secs).toFixed(1) : null, device: device() } };
-  } finally { clearTimeout(t); }
+  } finally { clearTimeout(t); end(t0); }
 }
+
+// one turn of a tool-using agent: the model either answers or asks for tools. Returns { text, calls: [{ name, args }],
+// message } where message is what to append to the conversation before the tool results. Muse Glimmer through Ollama's
+// native tool calling; any OpenAI-compatible server (Meta Model API included) through function calling.
+export async function chatTools(messages, tools, { maxTokens = 500, temperature = 0.2 } = {}) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), TIMEOUT);
+  const t0 = begin();
+  try {
+    if (API === "ollama") {
+      const r = await fetch(`${URL_.replace(/\/v1$/, "")}/api/chat`, {
+        method: "POST", headers, signal: ctl.signal,
+        body: JSON.stringify({ model: MODEL, messages, tools, stream: false, think: THINKING === "false" ? false : THINKING, keep_alive: "24h",
+          options: { num_predict: maxTokens + THINK_BUDGET, temperature } }),
+      });
+      if (!r.ok) throw new Error(`LLM server ${r.status}: ${(await r.text()).slice(0, 200)}`);
+      const j = await r.json(), m = j.message || {};
+      await debug(messages, j);
+      const calls = (m.tool_calls || []).map((c) => ({ name: c.function?.name, args: typeof c.function?.arguments === "string" ? safeJSON(c.function.arguments) : c.function?.arguments || {} }));
+      return { text: (m.content || "").replace(THINK, "").trim(), calls, message: { role: "assistant", content: m.content || "", tool_calls: m.tool_calls }, seconds: +((Date.now() - t0) / 1000).toFixed(2) };
+    }
+    const r = await fetch(`${URL_}/chat/completions`, {
+      method: "POST", headers, signal: ctl.signal,
+      body: JSON.stringify({ model: MODEL, messages, tools, max_tokens: maxTokens, temperature }),
+    });
+    if (!r.ok) throw new Error(`LLM server ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const j = await r.json(), m = j.choices[0].message;
+    await debug(messages, j);
+    const calls = (m.tool_calls || []).map((c) => ({ id: c.id, name: c.function?.name, args: safeJSON(c.function?.arguments) }));
+    return { text: (m.content || "").replace(THINK, "").trim(), calls, message: m, seconds: +((Date.now() - t0) / 1000).toFixed(2) };
+  } finally { clearTimeout(t); end(t0); }
+}
+const safeJSON = (s) => { try { return JSON.parse(s || "{}"); } catch { return {}; } };
 
 export async function health() {
   try { // any OpenAI-compatible model list (Ollama, llama.cpp, vLLM, SGLang, Meta Model API)

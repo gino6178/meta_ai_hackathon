@@ -9,7 +9,7 @@ let db = fs.existsSync(FILE) ? JSON.parse(fs.readFileSync(FILE, "utf8")) : { pla
 const save = () => { fs.mkdirSync(path.dirname(FILE), { recursive: true }); fs.writeFileSync(FILE, JSON.stringify(db, null, 1)); };
 
 // players linked before the 24-hour coach existed get its empty lists
-const shape = (p) => { if (p) { p.pantry ??= []; p.events ??= []; p.logs ??= []; } return p; };
+const shape = (p) => { if (p) { p.pantry ??= []; p.events ??= []; p.logs ??= []; p.games ??= []; p.body ??= { log: [], workouts: [], days: [] }; } return p; };
 export const players = () => Object.values(db.players).map(shape);
 export const get = (id) => shape(db.players[id]);
 export function update(id, fn) { const p = get(id); if (p) { fn(p); save(); } return p; }

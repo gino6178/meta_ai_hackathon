@@ -6,6 +6,9 @@ scripts/
 public/data/*
 !public/data/club.json
 !public/data/venues.json
+# the sample health export (made up) and the measured Autopilot numbers the About page shows
+!public/data/sample/
+!public/data/agent_eval.json
 public/body/
 public/media/*
 !public/media/favicon.svg

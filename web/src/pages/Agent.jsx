@@ -7,6 +7,7 @@ import { COACHES } from "../coaches/personas.js";
 import { tactics } from "../coaches/analysis.js";
 import { tips } from "../coaches/tips.js";
 import { useLearning } from "../coaches/learning.js";
+import { habits } from "../club/habits.js";
 import { coachById } from "../coaches/personas.js";
 import { loadMatches } from "../match/analytics.js";
 import { answer } from "../voice/intents.js";
@@ -27,8 +28,11 @@ const IDEAS = [
   "Get this week's quests",
   "Make my highlight reel for Instagram",
   "How should I warm up before Thursday?",
+  "Plan my week on Autopilot",
   "Find my best match this week",
   "Find me a random match this weekend",
+  "My right knee is sore after jumping",
+  "Basketball courts near me tonight",
 ];
 const initials = (n) => n.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 const first = (n) => n.split(" ")[0];
@@ -84,6 +88,9 @@ export default function Agent({ data }) {
     if (kind === "quests") return startQuests(memory.all().map((x) => x.text));
     if (kind === "roundtable") return go("roundtable");
     if (kind === "highlight") return go("match?tab=reel&auto=1");
+    if (kind === "autopilot") return go("autopilot?run=1");
+    if (kind === "body") return go(`body?say=${encodeURIComponent(q)}`);
+    if (kind === "courts") return go(`courts?sport=${(q.match(/basketball|badminton|tennis|soccer|football|volleyball|pickleball|table tennis/i) || ["basketball"])[0].toLowerCase().replace("football", "soccer")}`);
     if (kind === "best") return go(`club?tab=challenges&best=1${/doubles|partner/i.test(q) ? "&fmt=doubles" : ""}`);
     if (kind === "random") return go(`club?tab=challenges&spin=1${/doubles/i.test(q) ? "&fmt=doubles" : ""}${/weekend/i.test(q) ? "&when=weekend" : /weekday|evening/i.test(q) ? "&when=weekday" : ""}`);
     if (kind === "ranks") return go("club?tab=ranks");
@@ -146,6 +153,18 @@ export default function Agent({ data }) {
             </form>
             <div className="ideas" aria-label="Ideas">{IDEAS.map((x) => <button key={x} type="button" className="chip" onClick={() => ask(x)}>{x}</button>)}</div>
           </section>
+
+          {club && (() => {
+            const h = habits(club.you.history || []).slice(0, 2), goal = { perWeek: 2, ...(g.autopilot?.goal || {}) };
+            const ap = tasks.find((x) => x.kind === "autopilot");
+            return (
+              <section className="ap-card" aria-label="Autopilot">
+                <span className="agent-dot" aria-hidden="true"><Mark size={16} /></span>
+                <div><b>Autopilot</b><span className="tiny muted">{goal.perWeek} game{goal.perWeek > 1 ? "s" : ""} a week · you usually play {h.map((x) => `${x.day} ${x.start}`).join(" and ")}{ap?.state === "done" && ap.summary ? ` · last run: ${ap.summary}` : ""}</span></div>
+                <a className={`btn sm ${ap?.state === "running" ? "ghost" : "primary"}`} href={ap?.state === "running" ? "#/autopilot" : "#/autopilot?run=1"}>{ap?.state === "running" ? "Watch it work" : "Run my week"}</a>
+              </section>
+            );
+          })()}
 
           {(needs.length > 0 || learn?.waiting.length > 0 || asked.length > 0) && (
             <section className="task-sec" aria-labelledby="needs-h">

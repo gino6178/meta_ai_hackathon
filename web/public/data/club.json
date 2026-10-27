@@ -1,5 +1,5 @@
 {
- "name": "Riverside Badminton Club",
+ "name": "Riverside Sports Club",
  "demo": true,
  "note": "Sample club for the demo. The other members and their numbers are made up; your own numbers come from your analysed match.",
  "night": {
@@ -74,7 +74,11 @@
     "L",
     "W"
    ],
-   "agent": "Hana prefers doubles but plays singles on Thursdays; likes Riverside."
+   "agent": "Hana prefers doubles but plays singles on Thursdays; likes Riverside.",
+   "sports": [
+    "badminton",
+    "tennis"
+   ]
   },
   {
    "id": "ravi",
@@ -134,7 +138,11 @@
     "W",
     "W"
    ],
-   "agent": "Ravi avoids jump landings and prefers Sunday late mornings."
+   "agent": "Ravi avoids jump landings and prefers Sunday late mornings.",
+   "sports": [
+    "badminton",
+    "basketball"
+   ]
   },
   {
    "id": "tomas",
@@ -196,7 +204,12 @@
     "W",
     "W"
    ],
-   "agent": "Tomás is flexible; early starts are fine."
+   "agent": "Tomás is flexible; early starts are fine.",
+   "sports": [
+    "badminton",
+    "pickleball",
+    "tennis"
+   ]
   },
   {
    "id": "yuki",
@@ -256,7 +269,11 @@
     "W",
     "W"
    ],
-   "agent": "Yuki only plays after work on weekdays and wants the game to start at 19:00 or later."
+   "agent": "Yuki only plays after work on weekdays and wants the game to start at 19:00 or later.",
+   "sports": [
+    "badminton",
+    "tennis"
+   ]
   },
   {
    "id": "aisha",
@@ -317,7 +334,11 @@
     "L",
     "W"
    ],
-   "agent": "Aisha likes early Sunday games."
+   "agent": "Aisha likes early Sunday games.",
+   "sports": [
+    "badminton",
+    "volleyball"
+   ]
   },
   {
    "id": "leo",
@@ -375,7 +396,11 @@
     "W",
     "L"
    ],
-   "agent": "Leo keeps his smash count down for his shoulder and prefers evenings."
+   "agent": "Leo keeps his smash count down for his shoulder and prefers evenings.",
+   "sports": [
+    "badminton",
+    "basketball"
+   ]
   },
   {
    "id": "noor",
@@ -437,7 +462,11 @@
     "W",
     "L"
    ],
-   "agent": "Noor likes Saturday mornings and starting no earlier than 11:00 at weekends; wants a best-of-three rematch."
+   "agent": "Noor likes Saturday mornings and starting no earlier than 11:00 at weekends; wants a best-of-three rematch.",
+   "sports": [
+    "badminton",
+    "tennis"
+   ]
   },
   {
    "id": "sam",
@@ -494,7 +523,11 @@
     "W",
     "L"
    ],
-   "agent": "Sam is new and happy with any weekend morning."
+   "agent": "Sam is new and happy with any weekend morning.",
+   "sports": [
+    "badminton",
+    "pickleball"
+   ]
   },
   {
    "id": "ines",
@@ -554,7 +587,12 @@
     "W",
     "L"
    ],
-   "agent": "Ines plays Monday evenings by preference."
+   "agent": "Ines plays Monday evenings by preference.",
+   "sports": [
+    "badminton",
+    "tennis",
+    "table tennis"
+   ]
   },
   {
    "id": "kenji",
@@ -614,7 +652,11 @@
     "L",
     "W"
    ],
-   "agent": "Kenji likes Midtown and early weekend mornings; happy to play anyone."
+   "agent": "Kenji likes Midtown and early weekend mornings; happy to play anyone.",
+   "sports": [
+    "badminton",
+    "basketball"
+   ]
   },
   {
    "id": "priya",
@@ -674,7 +716,11 @@
     "L",
     "W"
    ],
-   "agent": "Priya avoids jump landings; Wednesday is best for her."
+   "agent": "Priya avoids jump landings; Wednesday is best for her.",
+   "sports": [
+    "badminton",
+    "pickleball"
+   ]
   }
  ],
  "feed": [
@@ -814,6 +860,198 @@
    "W",
    "L",
    "W"
+  ],
+  "history": [
+   {
+    "date": "2026-09-03",
+    "start": "19:00",
+    "sport": "badminton",
+    "format": "singles",
+    "with": [
+     "leo"
+    ],
+    "booked": 90,
+    "played": 120
+   },
+   {
+    "date": "2026-09-05",
+    "start": "09:00",
+    "sport": "badminton",
+    "format": "singles",
+    "with": [
+     "tomas"
+    ],
+    "booked": 90,
+    "played": 100
+   },
+   {
+    "date": "2026-09-10",
+    "start": "19:00",
+    "sport": "badminton",
+    "format": "singles",
+    "with": [
+     "kenji"
+    ],
+    "booked": 90,
+    "played": 90
+   },
+   {
+    "date": "2026-09-15",
+    "start": "19:30",
+    "sport": "tennis",
+    "format": "singles",
+    "with": [
+     "ines"
+    ],
+    "booked": 60,
+    "played": 60
+   },
+   {
+    "date": "2026-09-19",
+    "start": "09:00",
+    "sport": "badminton",
+    "format": "doubles",
+    "with": [
+     "kenji",
+     "tomas",
+     "sam"
+    ],
+    "booked": 90,
+    "played": 90
+   },
+   {
+    "date": "2026-09-24",
+    "start": "19:00",
+    "sport": "badminton",
+    "format": "singles",
+    "with": [
+     "leo"
+    ],
+    "booked": 90,
+    "played": 115
+   },
+   {
+    "date": "2026-10-01",
+    "start": "19:00",
+    "sport": "badminton",
+    "format": "doubles",
+    "with": [
+     "hana",
+     "tomas",
+     "leo"
+    ],
+    "booked": 90,
+    "played": 105
+   },
+   {
+    "date": "2026-10-06",
+    "start": "19:30",
+    "sport": "pickleball",
+    "format": "singles",
+    "with": [
+     "priya"
+    ],
+    "booked": 60,
+    "played": 80
+   },
+   {
+    "date": "2026-10-10",
+    "start": "09:00",
+    "sport": "badminton",
+    "format": "singles",
+    "with": [
+     "tomas"
+    ],
+    "booked": 90,
+    "played": 95
+   },
+   {
+    "date": "2026-10-15",
+    "start": "19:00",
+    "sport": "badminton",
+    "format": "singles",
+    "with": [
+     "kenji"
+    ],
+    "booked": 90,
+    "played": 90
+   },
+   {
+    "date": "2026-10-22",
+    "start": "19:00",
+    "sport": "badminton",
+    "format": "singles",
+    "with": [
+     "leo"
+    ],
+    "booked": 90,
+    "played": 125
+   },
+   {
+    "date": "2026-10-24",
+    "start": "09:00",
+    "sport": "badminton",
+    "format": "singles",
+    "with": [
+     "kenji"
+    ],
+    "booked": 90,
+    "played": 90
+   }
+  ],
+  "goal": {
+   "perWeek": 2,
+   "sport": "badminton",
+   "approval": "ask",
+   "maxTrip": 30
+  },
+  "note": "Your last eight weeks of games (demo): when you played, with whom, and how long against the booking.",
+  "sports": [
+   "badminton",
+   "tennis",
+   "pickleball"
+  ],
+  "body": [
+   {
+    "id": "b-s1",
+    "at": "2026-10-23T08:10:00+08:00",
+    "part": "knee",
+    "side": "right",
+    "kind": "sore",
+    "level": 2,
+    "trigger": "after Thursday's game",
+    "note": "Right knee a bit sore after Thursday's game"
+   },
+   {
+    "id": "b-s2",
+    "at": "2026-10-25T09:30:00+08:00",
+    "part": "knee",
+    "side": "right",
+    "kind": "pain",
+    "level": 3,
+    "trigger": "going down stairs",
+    "note": "Right knee hurts going down stairs, 3 out of 5"
+   },
+   {
+    "id": "b-s3",
+    "at": "2026-10-25T09:30:00+08:00",
+    "part": "calf",
+    "side": "left",
+    "kind": "tight",
+    "level": 2,
+    "trigger": null,
+    "note": "Left calf is tight"
+   },
+   {
+    "id": "b-s4",
+    "at": "2026-10-26T20:00:00+08:00",
+    "part": "calf",
+    "side": "left",
+    "kind": "fine",
+    "level": 0,
+    "trigger": null,
+    "note": "Calf feels fine now"
+   }
   ]
  },
  "incoming": [
@@ -904,5 +1142,13 @@
    "day": "Thu",
    "kind": "random"
   }
+ ],
+ "sports": [
+  "badminton",
+  "tennis",
+  "pickleball",
+  "table tennis",
+  "basketball",
+  "volleyball"
  ]
 }

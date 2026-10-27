@@ -2,7 +2,8 @@
 // 1920x1080 in the light theme. Each scene goes to build/<name>.webm, with the moments that matter in
 // build/marks.json (seconds from the start of that scene); assemble.mjs cuts, speeds up the model's waits,
 // captions and joins them.
-//   node record.mjs [scene ...]     scenes: title play tasks coaches chat round pocket highlight lab club end (default: all)
+//   node record.mjs [scene ...]     scenes: impact autopilot body courts pocket highlight club meta tech end, and the older
+//   title play tasks coaches chat round lab (default: the first list)
 import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
@@ -15,13 +16,15 @@ const HERE = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)
 const OUT = path.join(HERE, "build"), SCENES = path.join(HERE, "scenes"), MARKS = path.join(OUT, "marks.json");
 fs.mkdirSync(OUT, { recursive: true });
 const want = process.argv.slice(2);
-const run = (n) => !want.length || want.includes(n);
+const DEFAULT = ["impact", "autopilot", "body", "courts", "pocket", "highlight", "club", "meta", "tech", "end"];
+const run = (n) => (want.length ? want.includes(n) : DEFAULT.includes(n));
+const BODY_SEED = JSON.parse(fs.readFileSync(path.join(OUT, "body_seed.json"), "utf8"));
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const marks = fs.existsSync(MARKS) ? JSON.parse(fs.readFileSync(MARKS, "utf8")) : {};
 
 const browser = await puppeteer.launch({
   executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe", headless: "new", protocolTimeout: 900000,
-  args: ["--autoplay-policy=no-user-gesture-required", "--ignore-gpu-blocklist", "--enable-gpu-rasterization", "--window-size=1920,1080", "--allow-file-access-from-files"],
+  args: ["--lang=en-US", "--autoplay-policy=no-user-gesture-required", "--ignore-gpu-blocklist", "--enable-gpu-rasterization", "--window-size=1920,1080", "--allow-file-access-from-files"],
 });
 const page = await browser.newPage();
 await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
@@ -114,7 +117,7 @@ const G = "<span style='color:#0a7f44'>", E = "</span>";
 
 // a clean start: no earlier jobs, game state, stories seen or threads read
 await go("", 800);
-if (!want.length || want.includes("play")) await page.evaluate(() => ["shuttlecoach.tasks.v1", "shuttlecoach.game.v1", "shuttlecoach.stories.v1", "shuttlecoach.inbox.v1"].forEach((k) => localStorage.removeItem(k)));
+await page.evaluate(() => ["shuttlecoach.tasks.v1", "shuttlecoach.game.v1", "shuttlecoach.stories.v1", "shuttlecoach.inbox.v1", "serve.body"].forEach((k) => localStorage.removeItem(k)));
 
 if (run("title")) { await page.goto("file:///" + path.join(SCENES, "title.html").replace(/\\/g, "/")); await page.mouse.move(-10, -10); await rec("title", () => wait(9000)); }
 
@@ -290,6 +293,136 @@ if (run("club")) {
     await callout("fx4", `${G}Agent to agent${E}: every time checked against both calendars`, 80, 110); await wait(3200);
     const bk = await at(".a2a-book .btn", null, false).catch(() => null);
     if (bk) { await move(bk.x, bk.y, 800); await wait(900); }
+  });
+  await resetFx();
+}
+
+// the opening: the number, the pain, what Serve does
+if (run("impact")) { await page.goto("file:///" + path.join(SCENES, "impact.html").replace(/\\/g, "/")); await page.mouse.move(-10, -10); await rec("impact", () => wait(13500)); }
+
+// the Autopilot: one click, then Muse Glimmer runs the week tool by tool (with the body log and the watch data in
+// place), negotiates with the other players' agents, and asks once; a tap books it
+if (run("autopilot")) {
+  // a hash change keeps the app's state in memory: seed, then reload so the app reads it
+  await go("autopilot", 600);
+  await page.evaluate((b) => { localStorage.setItem("serve.body", JSON.stringify(b)); localStorage.removeItem("shuttlecoach.tasks.v1"); }, BODY_SEED);
+  await page.reload({ waitUntil: "networkidle2" }); await page.mouse.move(mx, my); await wait(1800);
+  await rec("autopilot", async (mark) => {
+    await callout("fx1", `It learned ${G}when you play${E} and ${G}who you play best with${E}`, 80, 110); await wait(2600); await uncall("fx1");
+    await click(".report-head .btn.primary", "Run my week now", 900); mark("run");
+    await page.waitForFunction(() => document.querySelector(".ap-steps li.check_body"), { timeout: 240000, polling: 200 }); mark("body");
+    await scrollEl(".ap-run", "start", 1200);
+    await callout("fx2", `Muse Glimmer ${G}picks each tool${E}; code runs it and checks the result`, 80, 110);
+    await page.waitForFunction(() => document.querySelector(".ap-steps li.find_partners"), { timeout: 240000, polling: 200 }); mark("partners");
+    await page.waitForFunction(() => document.querySelector(".ap-thread"), { timeout: 240000, polling: 200 }); mark("talk");
+    await uncall("fx2");
+    await callout("fx3", `Your agent and ${G}three players' agents${E}, answering at once`, 80, 110);
+    await page.waitForFunction(() => document.querySelector(".ap-approve"), { timeout: 600000, polling: 300 }); mark("ask");
+    await uncall("fx3"); await wait(400);
+    await scrollEl(".ap-approve", "center", 1200);
+    await page.screenshot({ path: path.join(HERE, "..", "submission", "shots", "autopilot_week.png") }); // the opening card's picture
+    const a = await center(".ap-approve");
+    if (a) await zoom(a.x, a.y, 1.15, 1300);
+    await callout("fx4", `${G}Nothing is booked${E} until you say yes`, 80, 120); await wait(2600);
+    await resetFx();
+    await click(".ap-approve .btn.primary", null, 900); mark("booked"); await wait(2600);
+  });
+  await resetFx();
+}
+
+// the body log: tell it what hurts, it lands on the body; share the health app, the plan changes; the report
+if (run("body")) {
+  await go("body", 600);
+  await page.evaluate(() => localStorage.removeItem("serve.body"));
+  await page.reload({ waitUntil: "networkidle2" }); await page.mouse.move(mx, my); await wait(4500);
+  await rec("body", async (mark) => {
+    const t = await at(".bd-tell textarea");
+    await move(t.x, t.y, 800); await page.mouse.click(t.x, t.y);
+    await page.keyboard.type("My right knee still hurts today, about 3 out of 5, worse after jumping", { delay: 28 }); mark("typed");
+    await click(".bd-tell form .btn", null, 600); mark("sent");
+    await page.waitForFunction(() => document.querySelector(".bd-agent:not(.working)"), { timeout: 180000, polling: 200 }); mark("filed");
+    await wait(600);
+    const f = await center(".bd-figure", null, .5, .62);
+    if (f) await zoom(f.x, f.y, 1.25, 1400);
+    await callout("fx1", `Filed on your body by ${G}Muse Glimmer${E}: right knee, 3 of 5`, 80, 120); await wait(3000);
+    await resetFx();
+    await scrollEl(".bd-health", "start", 1300);
+    const [sample] = await page.$$("xpath/.//button[contains(., 'Try the sample export')]");
+    const sb = await sample.boundingBox(); await move(sb.x + sb.width / 2, sb.y + sb.height / 2, 800); await page.mouse.click(sb.x + sb.width / 2, sb.y + sb.height / 2); mark("import");
+    await page.waitForFunction(() => !document.querySelector(".bd-steps .working") && document.querySelector(".bd-health .small b"), { timeout: 300000, polling: 200 }); mark("imported");
+    await wait(1500);
+    await scrollEl(".bd-side", "start", 1300);
+    const acts = await center(".bd-acts");
+    if (acts) await zoom(acts.x, acts.y, 1.12, 1300);
+    await callout("fx2", `Your watch: this week is ${G}2 times your usual load${E}`, 80, 110); mark("acts"); await wait(3400);
+    await resetFx();
+    await scrollEl(".bd-trail", "start", 1500); mark("trail");
+    await page.waitForFunction(() => !document.querySelector(".bd-attr.loading"), { timeout: 240000, polling: 500 }).catch(() => {});
+    await wait(2600);
+    await scrollEl(".bd-report", "start", 1300);
+    const [wr] = await page.$$("xpath/.//button[contains(., 'Write the summary')]");
+    if (wr) { const wb = await wr.boundingBox(); await move(wb.x + wb.width / 2, wb.y + wb.height / 2, 800); await page.mouse.click(wb.x + wb.width / 2, wb.y + wb.height / 2); }
+    mark("write");
+    await page.waitForFunction(() => document.querySelector(".bd-sum"), { timeout: 180000, polling: 200 }); mark("report");
+    await callout("fx3", `A report for you or your physio · ${G}every number checked${E}`, 80, 110); await wait(3200);
+  });
+  await resetFx();
+}
+
+// courts near you, any sport: the map, the reviews, the forecast, then every court judged at once
+if (run("courts")) {
+  await go("courts?sport=basketball", 1500);
+  await rec("courts", async (mark) => {
+    await click(".ct-ask .btn.primary", "Find courts", 900); mark("find");
+    await page.waitForFunction(() => document.querySelector(".ct-list"), { timeout: 600000, polling: 300 }); mark("found");
+    await wait(500);
+    await scrollEl(".ct-head", "start", 1300);
+    const c = await center(".ct-place", null, .5, .5);
+    if (c) await zoom(c.x, c.y, 1.25, 1400);
+    await callout("fx1", `Each reason cites ${G}the map${E}, ${G}a review${E} or ${G}the forecast${E}, and is checked`, 80, 110); await wait(3600);
+  });
+  await resetFx();
+}
+
+// what it is built on: the About page's Meta AI section, then the architecture and the measured numbers
+if (run("meta")) {
+  await go("about", 2500);
+  await page.evaluate(() => document.getElementById("ab-meta")?.scrollIntoView({ block: "start" })); await page.evaluate(() => scrollBy(0, -120)); await wait(1200);
+  await move(1880, 1060, 10);
+  await rec("meta", async (mark) => {
+    const g = await center(".ab-meta", null, .5, .35);
+    if (g) await zoom(g.x, g.y, 1.06, 1500);
+    await callout("fx1", `Every agent: ${G}Muse Glimmer${E}, open weights on our own GPU`, 80, 110); mark("glimmer"); await wait(5600);
+    await resetFx(); await wait(400);
+    const v = await center(".ab-meta", null, .66, .4);
+    if (v) await zoom(v.x, v.y, 1.08, 1500);
+    await callout("fx2", `${G}DETR, Sapiens2, SAM 2.1${E} read the video · ${G}Messenger, Instagram, Facebook${E}`, 80, 110); mark("vision"); await wait(5200);
+    await resetFx();
+    await scrollEl(".ab-beyond", "center", 1300); mark("beyond");
+    const y = await center(".ab-beyond");
+    if (y) await zoom(y.x, y.y, 1.12, 1300);
+    await wait(3600);
+  });
+  await resetFx();
+}
+if (run("tech")) {
+  await go("about", 2500);
+  await page.evaluate(() => document.querySelector(".ab-arch")?.scrollIntoView({ block: "start" })); await page.evaluate(() => scrollBy(0, -30)); await wait(1200);
+  await move(1880, 1060, 10);
+  await rec("tech", async (mark) => {
+    await wait(1800); mark("whole");
+    const z = await center(".ab-arch svg", null, .47, .32);
+    if (z) await zoom(z.x, z.y, 1.22, 1600);
+    await callout("fx1", `Agents in one gateway, ${G}four Muse Glimmer calls at once${E}`, 80, 110); mark("agents"); await wait(3400);
+    await resetFx(); await wait(300);
+    const v = await center(".ab-arch svg", null, .45, .82);
+    if (v) await zoom(v.x, v.y, 1.22, 1600);
+    await callout("fx2", `${G}Checked by code${E}: numbers, quotes, tool calls`, 80, 120); mark("verify"); await wait(3400);
+    await resetFx();
+    await scrollEl(".ab-nums", "center", 1300); mark("nums");
+    const n = await center(".ab-nums");
+    if (n) await zoom(n.x, n.y, 1.15, 1300);
+    await wait(3200);
   });
   await resetFx();
 }

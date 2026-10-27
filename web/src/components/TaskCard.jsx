@@ -5,7 +5,7 @@ import { dismiss, plain } from "../tasks.js";
 import Mark from "./Mark.jsx";
 
 // One job the agent did or is doing: what was asked, where it stands, and the trail of steps behind it.
-const JOB = { play: "Play", quests: "Quests", night: "Club night", ask: "Coach", lookup: "Your match", match: "Best match", talk: "Agent to agent" };
+const JOB = { play: "Play", quests: "Quests", night: "Club night", ask: "Coach", lookup: "Your match", match: "Best match", talk: "Agent to agent", autopilot: "Autopilot" };
 export function ago(t) {
   const s = Math.round((Date.now() - t) / 1000);
   return s < 45 ? "just now" : s < 3600 ? `${Math.round(s / 60)} min ago` : s < 86400 ? `${Math.round(s / 3600)} h ago` : `${Math.round(s / 86400)} d ago`;
@@ -14,6 +14,7 @@ function action(t) {
   if (t.state === "failed") return null;
   if (t.kind === "play") return t.booking ? (t.booking.state === "confirmed" ? "See the game" : "Follow the answers") : t.state === "needs" ? `Review ${t.result?.options?.length ?? ""} options` : t.state === "running" ? "Watch" : "Open";
   if (t.kind === "talk") return t.state === "needs" ? "Book it" : "See the talk";
+  if (t.kind === "autopilot") return t.state === "needs" ? "Review the plan" : t.state === "running" ? "Watch" : "See the run";
   return { quests: "Open goals", night: "Open the plan", ask: "Continue the chat", lookup: "Show me", match: "See the matches" }[t.kind] || "Open";
 }
 

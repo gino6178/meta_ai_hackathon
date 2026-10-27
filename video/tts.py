@@ -16,7 +16,7 @@ k = Kokoro(os.path.join(models, "kokoro-v1.0.onnx"), os.path.join(models, "voice
 
 # how words are said; the subtitles keep the written form
 SAY = [("3D", "three D"), ("Muse Glimmer", "Muse Glimmer"), ("NT$", "N T dollars"),
-       ("Sapiens2", "Sapiens two"), ("SAM 2.1", "Sam two point one")]
+       ("Sapiens2", "Sapiens two"), ("SAM 2.1", "Sam two point one"), ("DETR", "D T R"), ("GPU", "G P U")]
 GAP = {".": 0.34, "!": 0.34, "?": 0.34, ":": 0.24, ";": 0.24}
 
 scenes = json.load(open(src, encoding="utf8"))

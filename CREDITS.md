@@ -42,6 +42,14 @@ Serve is our own work, built on the open models, libraries and data below.
 - **Club, venues, town map and members.** Made up for the demo, by us. They include the free slots, prices and home
   areas.
 - **Icons and the shuttle mark.** Drawn by us.
+- **Map data.** Courts, parks, roads and rivers © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors,
+  under the Open Database License, through the Overpass API; place search through Nominatim. Route maps are drawn by
+  the app from that data. The sample runs follow a bikeway from it (`video/sample_route.json`).
+- **Weather.** Forecasts from [Open-Meteo](https://open-meteo.com), CC BY 4.0.
+- **Reviews.** Google Maps ratings and reviews through the Places API, when the server has a key: shown with their
+  authors and a link to the place on Google Maps, never on another map, and not stored.
+- **Sample health export.** Made up by us (`video/sample_health.py`) and labelled as a sample; not a real person's
+  record.
 
 ## Meta products
 

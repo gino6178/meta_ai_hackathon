@@ -15,12 +15,29 @@ async function stream(path, body, onEvent) {
 }
 // the best match this week, scored by your agent; then your agent and that member's agent agree a time and a court
 export const agentBest = (body, onEvent) => stream("/api/match/best", body, onEvent);
+// the Autopilot: your agent plans the week against your goal, then waits for your yes
+export const agentAutopilot = (body, onEvent) => stream("/api/autopilot/run", body, onEvent);
+export const agentAutopilotAnswer = (id, choice) => call("/api/autopilot/answer", { id, choice });
 export const agentTalk = (body, onEvent) => stream("/api/match/talk", body, onEvent);
 // your own video, sent to your own GPU server only: the steps stream back, then both players read on every frame
-export async function agentReel(file, onEvent) {
-  const r = await fetch(AGENT_URL + "/api/reel", { method: "POST", headers: { "content-type": file.type || "video/mp4" }, body: file });
+export async function agentReel(file, onEvent, sport = "badminton") {
+  const r = await fetch(AGENT_URL + `/api/reel?sport=${encodeURIComponent(sport)}`, { method: "POST", headers: { "content-type": file.type || "video/mp4" }, body: file });
   return steps(r, onEvent);
 }
+// the body log: what you say hurts, read into entries; and the organized log, load and report
+export const agentBodyRead = (body) => call("/api/body/read", body);
+export const agentBodyReport = (body) => call("/api/body/report", body);
+// a health app's export, sent to your own server only and deleted once read
+export async function agentHealthImport(file, onEvent) {
+  const tz = -new Date().getTimezoneOffset();
+  const r = await fetch(AGENT_URL + `/api/health/import?name=${encodeURIComponent(file.name || "export")}&tz=${tz}`, { method: "POST", headers: { "content-type": file.type || "application/octet-stream" }, body: file });
+  return steps(r, onEvent);
+}
+// courts and parks near a point, judged playable or not from the map, Google Maps reviews and the forecast
+export const agentPlaces = (body, onEvent) => stream("/api/places", body, onEvent);
+export const agentWhere = (q) => call(`/api/places/where?q=${encodeURIComponent(q)}`);
+// roads, rivers and parks around a route, for the app to draw in its own style
+export const agentBasemap = ({ s, w, n, e }) => call(`/api/map/base?s=${s}&w=${w}&n=${n}&e=${e}`);
 async function steps(r, onEvent) {
   if (!r.ok || !r.body) throw new Error((await r.json().catch(() => ({}))).error || `gateway ${r.status}`);
   const rd = r.body.getReader(), dec = new TextDecoder();

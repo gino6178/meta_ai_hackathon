@@ -496,11 +496,14 @@ async function run(canvas, F, list, m, stopRef, onStep, drawn = false, people = 
   }
 }
 
-// ---- your own video: the reel of your smash ----------------------------------------------------------------------
+// ---- your own video: the reel of your best moment, in any sport --------------------------------------------------
 // The clip you filmed goes to your own GPU server once (video/pose/reel.py): DETR finds you, Sapiens2 reads your
 // pose, SAM 2.1 cuts you out, and your fastest overhead swing is the smash. The reel is your footage on top and
 // Serve's view of you under it: your outline lit up, your skeleton, and the path of your racket hand.
 const ME = "#6FB6FF", THEM = "#FF8A6B";
+// the moment the reel is built on, by sport (video/pose/reel.py finds it): a smash, a shot, a jump shot, a spike, a kick
+const kindOf = (d) => d.kind || "smash";
+export const OWN_SPORTS = [["badminton", "Badminton"], ["tennis", "Tennis"], ["pickleball", "Pickleball"], ["table tennis", "Table tennis"], ["basketball", "Basketball"], ["volleyball", "Volleyball"], ["soccer", "Soccer"]];
 const OWN = {
   vertical: { ...FORMATS.vertical, vid: { x: 0, y: 170, w: 720, h: 560 }, ai: { x: 0, y: 742, w: 720, h: 370 } },
   wide: { ...FORMATS.wide, ai: FORMATS.wide.split.ai },
@@ -561,7 +564,7 @@ function frameOwn(ctx, F, d, video, t, cam, phase) {
   if (lit) {
     const bar = vid.h * .07;
     ctx.fillStyle = "#000"; ctx.fillRect(vid.x, vid.y, vid.w, bar); ctx.fillRect(vid.x, vid.y + vid.h - bar, vid.w, bar);
-    const by = vid.y + bar + (F.kind === "wide" ? 100 : 16), badge = phase === "impact" ? "● CONTACT" : "▶ SMASH · SLOW-MO";
+    const by = vid.y + bar + (F.kind === "wide" ? 100 : 16), badge = phase === "impact" ? (kindOf(d) === "kick" ? "● THE KICK" : /jump|spike/.test(kindOf(d)) ? "● TOP OF THE JUMP" : "● CONTACT") : `▶ ${kindOf(d).toUpperCase()} · SLOW-MO`;
     ctx.font = "800 24px Consolas, monospace"; ctx.fillStyle = "#D6332A"; ctx.beginPath(); ctx.roundRect(vid.x + 24, by, ctx.measureText(badge).width + 28, 46, 8); ctx.fill();
     ctx.fillStyle = "#fff"; ctx.fillText(badge, vid.x + 38, by + 31);
     if (phase === "impact") {
@@ -579,7 +582,7 @@ function frameOwn(ctx, F, d, video, t, cam, phase) {
     ctx.fillStyle = "#04070A88"; ctx.fillRect(vid.x, vid.y, vid.w, vid.h);
     ctx.save(); ctx.translate(vid.x + vid.w / 2, vid.y + vid.h / 2); ctx.rotate(-0.08);
     ctx.strokeStyle = "#F2E6C9"; ctx.lineWidth = 6; ctx.strokeRect(-230, -70, 460, 140);
-    ctx.fillStyle = "#F2E6C9"; ctx.textAlign = "center"; ctx.font = "900 64px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(d.smash != null ? "SMASH!" : "RALLY!", 0, 6);
+    ctx.fillStyle = "#F2E6C9"; ctx.textAlign = "center"; ctx.font = "900 64px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(d.smash != null ? `${kindOf(d).toUpperCase()}!` : "RALLY!", 0, 6);
     ctx.font = "700 26px Consolas, monospace"; ctx.fillText("MY GAME · SERVE", 0, 48);
     ctx.restore();
   }
@@ -591,33 +594,33 @@ function frameOwn(ctx, F, d, video, t, cam, phase) {
   }
   const when = new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   if (F.kind === "vertical") {
-    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 22px Consolas, monospace"; ctx.fillText("SERVE · MY SMASH", 40, 62);
+    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 22px Consolas, monospace"; ctx.fillText(`SERVE · MY ${kindOf(d).toUpperCase()}`, 40, 62);
     ctx.fillStyle = "#EEF1F2"; ctx.font = "700 40px Segoe UI, sans-serif"; ctx.fillText("Me, in slow motion", 40, 120);
     ctx.fillStyle = "#8A979E"; ctx.font = "400 22px Segoe UI, sans-serif"; ctx.fillText(`My own video · ${when}`, 40, 152);
     const y0 = F.ai.y + F.ai.h + 58;
-    ctx.fillStyle = "#F2E6C9"; ctx.font = "800 44px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(d.smash != null ? "My smash" : "My rally", 40, y0);
+    ctx.fillStyle = "#F2E6C9"; ctx.font = "800 44px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(d.smash != null ? `My ${kindOf(d)}` : "My game", 40, y0);
     ctx.fillStyle = "#8A979E"; ctx.font = "600 20px Consolas, monospace"; ctx.textAlign = "right"; ctx.fillText(phase === "live" ? "REAL SPEED" : "QUARTER SPEED", W - 40, y0); ctx.textAlign = "left";
     ctx.fillStyle = "#5FD39A"; ctx.font = "500 18px Consolas, monospace"; ctx.fillText("● read on my own GPU · DETR, Sapiens2, SAM 2.1", 40, H - 30);
   } else {
     const g = ctx.createLinearGradient(0, 0, 0, 140); g.addColorStop(0, "#04070ACC"); g.addColorStop(1, "#04070A00");
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, 140);
-    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 20px Consolas, monospace"; ctx.fillText("SERVE · MY SMASH", 32, 44);
+    ctx.fillStyle = "#F2E6C9"; ctx.font = "600 20px Consolas, monospace"; ctx.fillText(`SERVE · MY ${kindOf(d).toUpperCase()}`, 32, 44);
     ctx.fillStyle = "#EEF1F2"; ctx.font = "800 40px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(`Me, in slow motion · ${when}`, 32, 92);
   }
 }
 
-function cardOwn(ctx, F) {
+function cardOwn(ctx, F, d = {}) {
   const { W, H } = F;
   ctx.fillStyle = "#04070A"; ctx.fillRect(0, 0, W, H);
   ctx.fillStyle = "#F2E6C9"; ctx.font = "600 24px Consolas, monospace"; ctx.fillText("MY OWN VIDEO", 60, H / 2 - 70);
-  ctx.fillStyle = "#EEF1F2"; ctx.font = "800 64px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText("My smash", 60, H / 2);
+  ctx.fillStyle = "#EEF1F2"; ctx.font = "800 64px Bahnschrift, Segoe UI, sans-serif"; ctx.fillText(`My ${kindOf(d)}`, 60, H / 2);
   ctx.fillStyle = "#8A979E"; ctx.font = "400 28px Segoe UI, sans-serif"; ctx.fillText("Read by Sapiens2 and SAM 2.1", 60, H / 2 + 54);
 }
 
 async function runOwn(canvas, F, own, stopRef, onStep) {
   const ctx = canvas.getContext("2d"), d = own.data, L = F.kind === "vertical" ? OWN.vertical : OWN.wide;
   onStep(0);
-  cardOwn(ctx, L);
+  cardOwn(ctx, L, d);
   const v = document.createElement("video");
   v.muted = true; v.playsInline = true; v.src = own.url;
   await Promise.all([new Promise((ok) => { v.oncanplay = ok; v.onerror = ok; }), wait(900)]);
@@ -680,13 +683,14 @@ export default function Highlights({ m, p }) {
   const [cap2, setCap2] = useState(null); // { text, by } from Muse Glimmer
   // your own video: { file, url, state: reading | ready | failed, steps, working, error, data }
   const [own, setOwn] = useState(null);
+  const [ownSport, setOwnSport] = useState("badminton");
   const pick = async (f) => {
     if (!f) return;
     if (own?.url) URL.revokeObjectURL(own.url);
     const o = { file: f, url: URL.createObjectURL(f), state: "reading", steps: [], working: "Sending your video to your own server" };
     setOwn(o); setFile(null); setCap2(null); setMsg("");
     try {
-      const data = await agentReel(f, (e) => setOwn((x) => x && x.url === o.url ? (e.type === "step" ? { ...x, steps: [...x.steps, e] } : { ...x, working: e.step }) : x));
+      const data = await agentReel(f, (e) => setOwn((x) => x && x.url === o.url ? (e.type === "step" ? { ...x, steps: [...x.steps, e] } : { ...x, working: e.step }) : x), ownSport);
       setOwn((x) => x && x.url === o.url ? { ...x, state: "ready", working: null, data } : x);
     } catch (e) { setOwn((x) => x && x.url === o.url ? { ...x, state: "failed", working: null, error: e.message } : x); }
   };
@@ -699,13 +703,14 @@ export default function Highlights({ m, p }) {
   const [file, setFile] = useState(null); // { url, blob, ext }
   const [msg, setMsg] = useState("");
   const F = FORMATS[fmt];
-  const rule = mine ? "My smash, slowed right down: Serve found me, read my pose and cut me out of the video. #badminton #smash #ServeApp"
+  const kind = mine ? (mine.data.kind || "smash") : "smash", sportTag = mine ? (mine.data.sport || "badminton").replace(/\s+/g, "") : "badminton";
+  const rule = mine ? `My ${kind}, slowed right down: Serve found me, read my pose and cut me out of the video. #${sportTag} #${kind.replace(/\s+/g, "")} #ServeApp`
     : `${m.names[p]}: top ${list.length} from ${m.event}. ${list.map((h) => cap(h.why.join(", "))).join(" · ")}. Analysed on-device with Serve. #badminton #ServeApp`;
   const caption = cap2?.text || rule;
   const [writing, setWriting] = useState(false);
   const write = async () => {
     setWriting(true);
-    try { setCap2(await agentCaption(mine ? { player: "Me", own: { what: mine.data.smash != null ? "my smash, replayed in slow motion" : "a rally from my game" } } : { player: m.names[p], event: m.event, picks: list.map((h) => ({ why: h.why, set: h.r.set, score: h.r.score, shots: h.r.shots.length, last: h.r.lastType })) })); }
+    try { setCap2(await agentCaption(mine ? { player: "Me", own: { what: mine.data.smash != null ? `my ${kind} in ${mine.data.sport || "badminton"}, replayed in slow motion` : `a moment from my ${mine.data.sport || "badminton"} game` } } : { player: m.names[p], event: m.event, picks: list.map((h) => ({ why: h.why, set: h.r.set, score: h.r.score, shots: h.r.shots.length, last: h.r.lastType })) })); }
     catch { setCap2(null); setMsg("Muse Glimmer could not be reached; the caption below is the template."); }
     setWriting(false);
   };
@@ -717,7 +722,7 @@ export default function Highlights({ m, p }) {
   useEffect(() => { if (!auto.current && list.length && /[?&]auto=1/.test(location.hash)) { auto.current = true; go(true); } }, [list]);
   useEffect(() => {
     if (!canvas.current || state !== "idle" || file) return;
-    if (mine) cardOwn(canvas.current.getContext("2d"), F);
+    if (mine) cardOwn(canvas.current.getContext("2d"), F, mine.data);
     else if (list.length) card(canvas.current.getContext("2d"), F, list[0], 0, list.length, m.names);
   }, [list, fmt, state, file, m.names, mine]);
 
@@ -744,7 +749,7 @@ export default function Highlights({ m, p }) {
     setState("idle");
   };
 
-  const name = mine ? `serve_my_smash_${fmt === "vertical" ? "9x16" : "16x9"}` : `serve_top${list.length}_${m.names[p].split(" ")[0].toLowerCase()}_${fmt === "vertical" ? "9x16" : "16x9"}`;
+  const name = mine ? `serve_my_${kind.replace(/\s+/g, "_")}_${fmt === "vertical" ? "9x16" : "16x9"}` : `serve_top${list.length}_${m.names[p].split(" ")[0].toLowerCase()}_${fmt === "vertical" ? "9x16" : "16x9"}`;
   const share = async () => {
     const f = new File([file.blob], `${name}.${file.ext}`, { type: file.blob.type });
     if (navigator.canShare?.({ files: [f] })) {
@@ -770,10 +775,13 @@ export default function Highlights({ m, p }) {
     <section className={`hl-grid ${fmt}`}>
       <div className="panel">
         <div className={`own-card ${own ? own.state : ""}`}>
-          <div className="own-h"><b>{mine ? "Your smash, from your own video" : "Use your own video"}</b>
+          <div className="own-h"><b>{mine ? `Your ${kind}, from your own video` : "Use your own video"}</b>
             {own && state === "idle" && <button className="link" onClick={() => { URL.revokeObjectURL(own.url); setOwn(null); setFile(null); setCap2(null); }}>{mine ? "Back to the match highlights" : "Cancel"}</button>}</div>
-          {!own && <p className="tiny muted">Film a rally on your phone. Your agent finds you with Meta's DETR, reads your pose with Sapiens2 and cuts you out with SAM 2.1, on your own GPU server, then replays your smash in slow motion. The video goes nowhere else.</p>}
-          {!own && <label className="btn primary sm own-pick"><input type="file" accept="video/*" onChange={(e) => pick(e.target.files?.[0])} />Choose a video</label>}
+          {!own && <p className="tiny muted">Film your game on your phone, in any ball sport. On your own GPU server, Meta's DETR finds you, Sapiens2 reads your pose and SAM 2.1 cuts you out; then the reel replays your best moment (a smash, a swing, a jump shot, a spike, a kick) in slow motion. The video goes nowhere else.</p>}
+          {!own && <div className="own-row">
+            <label className="tiny">Sport <select value={ownSport} onChange={(e) => setOwnSport(e.target.value)}>{OWN_SPORTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+            <label className="btn primary sm own-pick"><input type="file" accept="video/*" onChange={(e) => pick(e.target.files?.[0])} />Choose a video</label>
+          </div>}
           {own && (
             <ol className="own-steps">
               {own.steps.map((x, i) => <li key={i}><Icon name="check" size={16} /><span><b>{x.step}</b><em>{x.detail}</em></span></li>)}
@@ -781,7 +789,7 @@ export default function Highlights({ m, p }) {
               {own.state === "failed" && <li className="failed"><span><b>Could not make the reel</b><em>{own.error}</em></span></li>}
             </ol>
           )}
-          {mine && <p className="tiny muted">{mine.data.smash != null ? `Your smash at ${mine.data.smash.toFixed(1)} s: your fastest overhead swing.` : "No overhead swing found, so the reel shows the rally."} Preview it or create the video, then post it.</p>}
+          {mine && <p className="tiny muted">{mine.data.smash != null ? `Your ${kind} at ${mine.data.smash.toFixed(1)} s: ${{ smash: "your fastest overhead swing", shot: "your fastest swing", "jump shot": "the top of your jump", spike: "the top of your jump", kick: "your fastest kick" }[kind] || "your best moment"}.` : "No overhead swing found, so the reel shows the rally."} Preview it or create the video, then post it.</p>}
           {own?.state === "failed" && <label className="btn ghost sm own-pick"><input type="file" accept="video/*" onChange={(e) => pick(e.target.files?.[0])} />Try another video</label>}
         </div>
         {!mine && <>
@@ -812,7 +820,7 @@ export default function Highlights({ m, p }) {
             <button className="btn primary" onClick={() => go(true)}>Create video</button>
           </> : <button className="btn ghost" onClick={() => { stop.current = true; }}>{state === "recording" ? "Cancel" : "Stop"}</button>}
         </div>
-        {state === "recording" && <p className="tiny muted">{mine ? "Recording your smash." : `Recording highlight ${step + 1} of ${list.length}.`} The video is rendered in this browser.</p>}
+        {state === "recording" && <p className="tiny muted">{mine ? `Recording your ${kind}.` : `Recording highlight ${step + 1} of ${list.length}.`} The video is rendered in this browser.</p>}
         {file && (
           <div className="hl-done">
             <b>Your reel is ready · {(file.blob.size / 1e6).toFixed(1)} MB · .{file.ext}</b>
@@ -823,7 +831,7 @@ export default function Highlights({ m, p }) {
               <a className="btn ghost" href={file.url} download={`${name}.${file.ext}`}>Download</a>
               <button className="btn ghost" onClick={copy}>Copy caption</button>
               <button className="btn ghost" onClick={() => setMsg(clubShares().highlights
-                ? (postToClub(mine ? { kind: "highlight", coach: "technique", text: "Shared my smash, in slow motion.", reply: "Good extension at contact. Next, watch where your racket hand finishes." } : { kind: "highlight", coach: "analyst", text: `Shared a highlight reel: top ${list.length} from ${m.event}.`, reply: "Great rallies. Watch how the last shot of each one sets up the winner." }) ? "Shared with the club feed." : "Could not save to the club feed.")
+                ? (postToClub(mine ? { kind: "highlight", coach: "technique", text: `Shared my ${kind}, in slow motion.`, reply: "Good extension at contact. Next, watch where your racket hand finishes." } : { kind: "highlight", coach: "analyst", text: `Shared a highlight reel: top ${list.length} from ${m.event}.`, reply: "Great rallies. Watch how the last shot of each one sets up the winner." }) ? "Shared with the club feed." : "Could not save to the club feed.")
                 : "Highlights are not shared with your club yet. Turn them on under “What the club sees” on the Club page.")}>Share with the club</button>
               <a className="chip" href={shareLinks(caption).whatsapp} target="_blank" rel="noopener noreferrer">WhatsApp</a>
               <a className="chip" href={shareLinks(caption).threads} target="_blank" rel="noopener noreferrer">Threads</a>

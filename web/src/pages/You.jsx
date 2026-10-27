@@ -66,6 +66,7 @@ export default function You({ data }) {
       <section aria-labelledby="o-h" className="you-sec">
         <h2 id="o-h" className="sec-label">Your data</h2>
         <ul className="view-grid plain">
+          <li><a href="#/body"><Icon name="heart" size={22} /><span><b>Body log</b><span className="tiny muted">What hurts, your health app, your trail and report</span></span></a></li>
           <li><a href="#/memory"><Icon name="memory" size={22} /><span><b>Player memory</b><span className="tiny muted">What the coaches remember, and what to forget</span></span></a></li>
           <li><a href="#/lab"><Icon name="verify" size={22} /><span><b>Lab</b><span className="tiny muted">How the coaches improve, with your approval</span></span></a></li>
           <li><a href="#/about"><Icon name="info" size={22} /><span><b>About Serve</b><span className="tiny muted">How it works and what stays private</span></span></a></li>

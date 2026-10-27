@@ -1,7 +1,7 @@
 # Serve: submission text
 
-Draft text for the Cerebral Valley submission form. Before submitting, check that the "Meta AI tooling" section
-matches what is wired in on the day, because the judges will try the demo.
+The long description for the submission form, in the order the judges score it: impact, Meta AI tooling, technical
+depth, and the demo.
 
 ## Name
 
@@ -9,263 +9,117 @@ Serve
 
 ## One line
 
-**Play more. Manage less.**
-
-A team of Muse Glimmer agents, laid out like a social app. Say you want to play, and your agent finds the time, the
-court in the middle and the people. Five coach agents turn your match into quests and a weekly plan. All of it runs on
-hardware you own.
+**Play more. Manage less.** A sports club app with an agent that gets you playing, in any ball sport.
 
 ## Track and theme
 
-Indie Developer track · Build for Your World
+Indie Developer · Build for Your World
 
-## The problem
+## Impact: the problem
 
-- **We get lazy about training.** Booking a court, finding people to play with and planning the week are exactly the
-  chores we skip, so the agents do all of them.
-- **Games that never happen.** Booking a court and lining up a time with friends is a chore, so club players play
-  less than they want to.
-- **No analyst.** Elite players have analysts, multi-camera tracking and full-time coaches. Club and school players
-  have a phone video and a guess.
-- **Footage that cannot go to the cloud.** Match video shows minors, and teams treat their tactics as confidential.
+31% of adults worldwide did not get enough physical activity in 2022 (World Health Organization, 2024). Most people
+who stop playing a sport don't stop liking it. They stop organizing it:
+
+- **Playing takes organizing.** A time that suits four people, a free court, somewhere everyone can reach. The group
+  chat goes quiet and nobody plays.
+- **Nobody pushes you.** One missed week becomes a month. Fitness apps count steps; none of them books the next game.
+- **Life gets in the way.** A sore knee, a heavy week, rain on an outdoor court: the plan doesn't bend, so it's skipped.
+- **Playing is better together**, and the best part is the people and showing it off afterwards.
+
+Serve takes the organizing off the player and keeps pushing. It is for anyone who plays a ball sport for fun
+(badminton, tennis, pickleball, table tennis, basketball, volleyball, soccer) and the clubs and friends they play with.
 
 ## What it does
 
-### A team of agents on one open model
+**Autopilot.** "Line up my games this week." Muse Glimmer runs the week as a tool-using agent. It checks the week and
+the body log, picks the times the player usually plays (habits learned from eight weeks of games), ranks the people
+they play best with (games that ran past their booking mean the two clicked), and negotiates with those players'
+agents, all three at once for doubles. A counter-offer is checked by code against every calendar and the court
+timetable; when agents disagree, the agent moves to the time most of them asked for. It asks once, in the app or
+with buttons in Messenger, and books on a tap. On Monday mornings it runs by itself for players who switched it on.
 
-Every agent here is Muse Glimmer, on one GPU the player owns. Each one has its own tools, its own slice of the facts
-and the player's memory, and its numbers are checked before they are shown.
+**Body log and health app.** "My right knee is sore after jumping, 3 out of 5." Muse Glimmer files it with one tool
+call (part, side, level, what set it off) and it appears on a 3D body, on the side that hurts. The player can share
+their health app's export (Apple Health, Google Fit, or a GPX, TCX or CSV file from any app), read on their own
+server and deleted. Workouts are linked to booked games, so a game the watch says ran 132 minutes teaches the
+Autopilot who the player clicks with. Code then works out the load (minutes × effort, this week against the last four)
+and what to do: doubles first and no jump sports while a knee is sore, shorter games for a sore back, one game fewer
+in a week over 1.5 times the usual, a check-in two days later, and a note that it is worth seeing a physio when the
+same part keeps coming back. The page shows the activity trail (weeks by sport, every session, GPS routes) and a body
+report whose summary Muse Glimmer writes with every number checked. It records and plans; it never diagnoses.
 
-- **Your agent** takes what you say and either does it itself (books a game) or hands it to the right coach agent. It
-  asks all four coach agents when you want this week's quests.
-- **Four coach agents and a head coach agent**:
-  - Tactics, technique, fitness and data each own a slice of the match facts and a visual: heat zones, a 3D replay,
-    a 3D muscle model, habit charts.
-  - Each one retrieves the player's memory before it answers.
-  - Each one messages the player in Facebook Messenger: a reminder before a session, a check-in in the evening.
-  - They debate at the round table, and the head coach settles conflicts by a fixed rule.
-- **A research agent** turns what the coaches need into literature searches. It keeps a finding only if every number
-  in it is in the abstract.
-- **Playbooks that improve, with guardrails.** Each coach agent proposes changes to its own playbook. A change is
-  adopted only if all of these hold:
-  - it cites a finding in the knowledge base;
-  - it passes the safety rules;
-  - it does not make the coach worse on its regression questions.
+**Courts near you, any sport.** "Basketball courts near me tonight." Public courts, sports centres and parks come from
+OpenStreetMap, with their Google Maps rating and reviews (when the server has a key), and the forecast for that hour
+from Open-Meteo. Muse Glimmer judges each place, four at once: hoops or nets, lights for an evening game, a roof if
+rain is likely, crowds, something broken or locked. Every reason cites the map, a review or the weather, and a quoted
+review must be in that review word for word. The Autopilot uses it to put a basketball game on a free public court.
 
-  Otherwise the player approves it, and any version can be rolled back.
+**Highlights.** Film a game on a phone, in any ball sport. On the player's own server, DETR finds them, Sapiens2 reads
+their pose and SAM 2.1 cuts them out; the reel finds the moment (a racket's fastest swing, the top of a jump, a kick)
+and replays it in slow motion with the player lit up. Muse Glimmer writes the caption, checked against the rallies,
+and the share sheet sends it to Instagram or Facebook.
 
-### Coach agents that improve themselves, with guardrails
+**The club.** A feed, a leaderboard (Elo) that every reported challenge moves, challenges, a random match drawn fairly
+from members who are free, and the best match: fair by rating, free when the player is, good for their weak zone, and
+agreed agent to agent.
 
-The coaching staff gets better on its own, and never in a way that could hurt the player.
-
-1. **Research.** A research agent turns what the coaches need into literature searches: the player's weak zones,
-   injuries in memory, and each coach's area. It keeps a finding only if every number in it is in the abstract.
-2. **Reflection.** Each night, every coach agent reads player feedback, the replies the verifier rejected and the new
-   findings in its area. It then proposes at most two changes to its own playbook.
-3. **Gates.** A change is adopted on its own only if all of these hold:
-   - it cites a real finding;
-   - it passes the safety check (locked rules stay, and nothing pushes through pain);
-   - it is not a repeat;
-   - the coach does no worse on its regression questions, measured before and after.
-4. **The player decides the rest.** A change that touches health, or makes a coach worse on its regression questions,
-   waits for the player's approval in Lab. Every version is kept and can be rolled back.
-
-What happened so far, from the running system:
-- **Research.** 3 research runs found 199 papers. 31 were screened, 24 kept, and 62 findings went into the knowledge
-  base.
-- **Proposals.** The coaches made 22 playbook proposals:
-  - 15 passed every gate and were adopted;
-  - 3 were turned down, for example "it repeats rule T3c";
-  - 2 wait for the player: one touches health, one made the coach worse on its test questions;
-  - 2 were rolled back.
-- **A change that made a coach better.** The head coach learned to add reactive initiation drills [E41], and its
-  regression failures went from 1 to 0.
-
-Full table: `submission/evolution_report.md`.
-
-### Laid out like a social app
-
-The app opens on your agent, the way Meta's Muse app does. You say what you want: "challenge Kenji to a singles match
-this week", "get this week's quests", "how should I warm up?".
-
-- **Tasks.** Every job is a card with its steps, streamed from the gateway as each one finishes. Jobs keep running
-  while you move around the app, and the agent checks back when one needs you.
-- **Five tabs.** Agent, Club (a feed), Play, Goals and You. The coaches are the inbox, and the round table is the
-  group chat. Stories from the coaches and the club sit at the top of the agent home.
-- **Light and dark.** The theme follows the system; video and 3D stay dark in both.
-
-### Play: say you want to play, and the agent books it
-
-1. **Reads the request.** Muse Glimmer turns "doubles on Thursday evening with Hana", "challenge Kenji" or
-   "我週六早上想打球" into a structured search.
-2. **Opens the map.** It shows the venues and each member's home area (an area, never an address). The map is drawn in
-   the app, so it works offline and no map service sees anyone's area.
-3. **Lines up everyone's calendar.** It lays everyone's free times side by side and finds the slots where all of them
-   are free.
-4. **Picks the venue in the middle.** For each venue with a free court, it works out every player's trip and picks the
-   one where the longest trip is shortest. For example: Midtown, 17 minutes for you and 12 for Kenji. The routes and
-   minutes are drawn on the map.
-5. **Chooses partners** when you don't name them. It ranks members who are free on level, format and how far they
-   live, and favours someone whose attack lands in the zone you lose most points in.
-   - **Sparring.** Ask for "someone who plays like my next opponent" and it ranks members by how closely their shot
-     mix matches the opponent's mix from your match. Example: Kenji, a 91% style match.
-6. **Writes the invites.** Glimmer writes one invite per player, in your voice, with each player's own trip time. Every
-   time and price is checked against the booking.
-7. **Books only when you confirm.** It holds the court, sends the invites and follows the answers.
-   - If someone can't make it, it invites the next best player.
-   - Someone you named is never swapped for someone else. The agent offers the next time that suits you both instead.
-8. **Game on.** You get a calendar file, a message for the group chat, a warm-up from Coach Ren and +30 XP in the club
-   league.
-
-### A coaching staff from one phone video
-
-- **Reconstructs the rally.** From one fixed camera, it recovers the shuttle's flight in metric 3D, every hit, both
-  players' positions, and launch speed, apex and landing for every shot.
-- **Four coach agents and a head coach agent.** Each coach explains its findings on the visual it owns:
-  - Tactics flashes the zones that cost points.
-  - Technique grades every flight in 3D.
-  - Fitness pulses the muscles to train on a 3D anatomy model.
-  - Data profiles habits and patterns.
-
-  Every coach can be questioned in free chat, in English or Chinese.
-- **A round table.** The coaches debate the match against what they remember about the player.
-  - Conflicts are settled by a fixed rule: health limits first, then points at stake, then one owner per goal.
-  - The result is four measurable goals and a 7-day plan, sent to the player in Messenger.
-- **Courtside.** A live view puts the score on the video, with one brief to read in the 20 seconds before the next
-  serve.
-
-### A 24-hour coach in your pocket, in Facebook Messenger
-
-- **The week arrives in Messenger.** The round table's goals and 7-day plan are sent as a message.
-- **A nudge before every session.** An hour before training, the coach reminds you, with a meal from what is in your
-  kitchen.
-- **A check-in after.** In the evening it asks how the session went, logs it and adjusts tomorrow.
-- **Ask any coach, any time.** Questions go to the right coach agent, and 👍/👎 quick replies feed its nightly
-  reflection.
-- **Built on the Messenger Platform.** A signed webhook (`X-Hub-Signature-256`), the Send API, quick replies, replies
-  split at 2,000 characters, and reminders sent with the confirmed-event-update tag. An end-to-end test drives the
-  whole conversation through the webhook against Muse Glimmer: 17 of 17 checks pass.
-
-### Auto highlights for Instagram and Facebook
-
-Ask your agent for a reel ("make my highlight reel for Instagram") and it cuts one by itself.
-
-1. **Picks the rallies.** The top five from the labels: outright winners, rally length, smash finishes and pressure
-   points.
-2. **Finds the people.** YOLO finds both players in every frame. Meta's **Sapiens2** reads each player's pose (body,
-   feet and hands), and **SAM 2.1** cuts each one out of the frame.
-3. **Replays the smash in slow motion.** The replay goes back to the player's smash. It ramps down to quarter speed
-   while the camera pushes in on the smasher, holds on contact with a flash, then follows the shuttle to the floor.
-4. **Shows you, and how it is made.** What you post is you: your footage on top, the smasher in a spotlight, and
-   under it Serve's view of the same moment: the players as their SAM 2.1 outlines with their Sapiens2
-   skeletons, and the shuttle from racket to racket. A drawn-only reel, with no footage at all, is one tap away.
-5. **Works on your own video.** Film a rally on your phone and pick it. On your own GPU server, Meta's DETR finds
-   you, Sapiens2 reads your pose and SAM 2.1 cuts you out, and your fastest overhead swing is taken as your smash.
-6. **Posts it.** Muse Glimmer writes the caption, and every number in it is checked against the rallies. On a phone,
-   the share sheet sends the video straight to Instagram or Facebook. On a computer, the reel is saved, the caption
-   copied and the site opened.
-
-### The club: training as a game, played together
-
-- **Coach quests.** Each coach gives a weekly quest that counters the next opponent, who is the boss.
-  - Every logged quest takes health off the boss.
-  - Streaks count recovery days.
-  - Badges include "Iron knee", for keeping every health limit.
-- **Leaderboard.** A club rating (Elo) that every reported challenge moves, with boards for rating, wins, effort
-  and improvement.
-- **Best match, agreed agent to agent.** Your agent ranks every member for a game this week: a fair game by rating,
-  a shared free time, the trip to the venue in the middle, training value, format, health limits and history. Muse
-  Glimmer says why, with every number checked. Then your agent talks to that member's agent (also Muse Glimmer,
-  from what the member shares with it). They propose, counter and agree, and code checks every time either side
-  names against both calendars and the court timetable. In a test run, Noor's agent turned down a Tuesday at Midtown
-  and countered with Saturday 11:00 at Riverside, because Noor starts no earlier than 11 at weekends; your agent
-  checked it and agreed.
-- **Challenges.** Challenges from members, open challenges, a random match drawn fairly from the members free when
-  you are, and results that move both ratings and post to the feed.
-- **Club night.** The head coach plans one session for all 12 members on 3 courts.
-- **Feed.** Members post, coaches reply, and an open game can be joined or a challenge taken up from the feed. Posts
-  can be shared to WhatsApp and Threads.
-- **Privacy.** The player chooses what the club sees. Footage, chats, memory and where they live are never shared.
+**In Messenger.** The same agent in the player's chats: plan the week, approve with a tap, a reminder an hour before,
+a check-in after, what hurts, a health export shared into the chat, courts near a place, the body report.
 
 ## Meta AI tooling
 
-**Muse Glimmer** (open weights, Apache 2.0) is every agent: your agent, the five coach agents and the research agent.
-It runs on one RTX 3090 in our own server, served by Ollama.
+| Meta model or product | Where it runs | What it does in Serve |
+|---|---|---|
+| **Muse Glimmer** (open weights) | Our GPU server: Ollama on one RTX 3090, 4 requests in parallel | Every agent: the Autopilot's tool loop (native tool calling); every agent-to-agent message, with each member's agent answering in parallel; reading what hurts into the body log; judging courts from map tags, reviews and the forecast; place names in English; the body report; highlight captions; play requests; the coach agents |
+| **Sapiens2** (pose, 0.4B) | Our GPU server, Hugging Face Transformers | Every player's pose on every highlight frame; the reel's moment |
+| **SAM 2.1** (Hiera-L) | Our GPU server, Hugging Face Transformers | Each player's outline, for the spotlight and the drawn view |
+| **DETR** (ResNet-50) | Our GPU server, Hugging Face Transformers | Finds the player in their own video |
+| **Messenger Platform** | Signed webhook, Send API, quick replies | The agent in the player's chats |
+| **Instagram, Facebook** | The share sheet | The reel and its caption |
 
-- **The agent loop.**
-  - Glimmer reads the request into a structured intent and writes the words.
-  - Code does what has to be exact: courts, calendars, travel times and the booking.
-  - A verifier checks every time, price and count in what Glimmer wrote. A draft that fails is replaced by checked
-    text.
-  - Each step is streamed to the app as it finishes, so the player watches the agent work.
-- **Hand-offs.** Your agent sends a question to the coach agent whose area it is, and the trail shows the hand-off.
-- **Grounded coach agents.**
-  - Each coach answers from a facts sheet computed from the match.
-  - A verifier checks every number against the fact it cites. A reply that fails is sent back once, then replaced by
-    the raw fact.
-  - Measured: 18 of 18 test questions answered by the model with every number verified (115 numbers), 83% on the
-    first try. Median reply 22 s on one RTX 3090. Full report: `submission/glimmer_eval.md`.
-- **Self-improvement.** Glimmer powers the research agent and each coach agent's nightly reflection. Code gates every
-  proposed change: a real citation, the safety rules, no repeats, and no regression on the coach's test questions.
-  15 of 22 proposals passed; health changes wait for the player.
-- **Quests and club night.** Glimmer writes them as JSON, and code checks targets, health limits and numbers. The app
-  shows what the verifier sent back as a step.
-- **Memory.** Glimmer extracts injuries, goals and schedule from chat into player memory. A sore knee then changes the
-  plan, the quests and the format the agent books.
-- **Highlight captions.** Glimmer writes the Instagram/Facebook caption as JSON, and code checks every number in it
-  against the picked rallies; a caption that fails is written again once, then replaced by the template.
-- **Sapiens2** (Meta, open, 0.4B pose model, through Hugging Face Transformers on our server). It reads both players'
-  pose on every highlight frame: the skeletons in the drawn reel, the racket hand the shuttle leaves from, and where
-  the replay camera aims.
-- **SAM 2.1** (Meta, open, Hiera-L). From each player's box it cuts the player out: the silhouettes in the reel's
-  view of the rally, and the spotlight on the smasher.
-- **DETR** (Meta, open, ResNet-50). Finds the player and their opponent in a video the player films themselves.
-- **Agents that talk to agents.** Your agent and each member's agent are Muse Glimmer; they negotiate in structured
-  messages (propose, counter, accept, decline), and code checks every time against both calendars and the courts.
-- **Muse Spark.** The gateway speaks OpenAI-compatible chat completions too, so it switches to Muse Spark on the Meta
-  Model API by setting three environment variables.
-- **SAM 3.1** *(planned; access requested)*: text-prompted segmentation and tracking of both players, so any uploaded
-  video becomes analysable, with automatic court calibration and bystander blurring before sharing.
+How it goes beyond a basic integration:
 
-Meta platforms: **Facebook Messenger** (the 24-hour coach, Messenger Platform), and **Instagram** and **Facebook**
-(highlight reels, through the share sheet).
+- **An agent, not a chatbot.** Muse Glimmer picks each tool; code runs it with checked arguments and hands back the
+  facts; a refused call comes back as a fact and the model re-plans. A step budget, and rules finish the plan if the
+  model stalls; the trail shows which steps the model decided.
+- **Many agents at once.** For doubles, three members' agents answer at the same time on four parallel slots of one GPU.
+- **Checked before anyone sees it.** Every number in model text must be in its facts; a quoted review must be in that
+  review; the days and times in a summary must be an agreed game's; no he or she, no diagnosis. A draft that fails is
+  redrafted, then replaced by rules.
+- **Open weights on our own hardware.** Video, body log and health data never go to a cloud model.
 
-## How it is built
+## Technical depth
 
-- **Web app.** React 19, Three.js and Vite. It works for a coach on a laptop, courtside on a tablet and a player on a
-  phone.
-- **Agent gateway.** Node. It streams job steps as NDJSON and talks to Muse Glimmer through Ollama's native chat API.
-  The same code runs against any OpenAI-compatible server or the Meta Model API.
-- **Perception.**
-  - TrackNetV5 (public code) for 2D shuttle tracking.
-  - 3D lifting, hit detection and court homography.
-  - For the highlights: YOLO11 pose finds the players (at 1280 px, so the far player is found in 92–100% of frames);
-    Sapiens2 and SAM 2.1 read them, every second frame and every frame around the smash.
-- **Speech.** Whisper tiny runs in the browser, so voice questions never leave the device.
-- **Where it runs.** Everything except optional Meta Model API calls runs on the user's own machine and GPU server.
+![Architecture](architecture.png)
 
-## Who it is for
-
-Club and school players and their coaches, a club's organiser, and parents who film matches on a phone.
-
-## What's next
-
-- **Real venues.** A venue adapter takes the same two calls the demo venues answer. Venues that already take bookings
-  on WhatsApp with Meta's Business Agent could be booked agent to agent.
-- **Real calendars.** Import from a calendar file, and invites that land in the partners' own agents.
-- **SAM 3.1** on every uploaded video, then pose on every rally for joint-load warnings.
-- **Spoken briefs.** The live view runs from a courtside camera, with Glimmer speaking each brief.
+- One Node.js gateway on the GPU server runs every agent and streams each step to the app as NDJSON, so the player
+  watches the agent work. Muse Glimmer runs on GPU 1; DETR, Sapiens2 and SAM 2.1 on GPU 0 (batched, bf16, about 0.3 s
+  a frame).
+- Health exports are read by a standard-library Python reader (Apple Health's XML streamed line by line, workout routes
+  from the zip, Google Fit's TCX and daily CSV, any GPX, TCX or CSV) without extracting anything to disk.
+- Places come from the Overpass API with retries across mirrors and a 30-day cache; route maps are drawn in the app
+  from OpenStreetMap roads, rivers and parks, so they carry no labels in any language.
+- **Measured on our server:** 8 of 8 weeks reached the goal; on average a week took 154 s, 16.6 Muse Glimmer calls and 8.1 tool calls, with up to 4 model calls at once. 3 tool calls were refused by code and re-planned around; rules finished the plan in 1 of 8 weeks (`submission/agent_eval.md`).
+- A Messenger end-to-end test drives the real gateway against a fake Graph API: linking, the plan, the Autopilot with
+  buttons, a tap that books, the reminder and check-in, a game that ran long, what hurts, a health export shared to the
+  chat, the body check-in with buttons, the report, feedback and `/forget`.
 
 ## Demo data
 
-The club members, venues, free slots and home areas are made up for the demo, and invite answers are simulated. The
-sample match is a professional rally used for development only. The demo video uses our own footage.
+The club, its members, venues, prices and free times are made up and labelled as a demo. The demo town sits on Taipei,
+so courts and parks near the members are real places from OpenStreetMap. The sample health export is made up and
+labelled as a sample; its runs follow a real riverside bikeway.
+
+## What's next
+
+- Muse Spark and SAM 3.1 through the Meta Model API (tracking in any uploaded video, blurring bystanders before
+  sharing), and Muse Image share cards.
+- Real venue booking adapters, and a phone shortcut that sends health data to the agent every day.
 
 ## Team
 
-[names, one Representative]
+Indie Developer track, one member.
 
 ## Links
 
-- Demo video: [URL]
-- Code: [URL]
+- Code: https://github.com/gino6178/meta_ai_hackathon

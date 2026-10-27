@@ -11,6 +11,8 @@ import { createPocket } from "./pocket.js";
 
 const TOKEN = process.env.MESSENGER_PAGE_TOKEN, SECRET = process.env.MESSENGER_APP_SECRET, VERIFY = process.env.MESSENGER_VERIFY_TOKEN;
 const API = (process.env.MESSENGER_API || "https://graph.facebook.com/v21.0").replace(/\/$/, "");
+// files shared to the chat are downloaded only from Facebook's own file servers (MESSENGER_FILE_RX overrides, for tests)
+const FILES = new RegExp(process.env.MESSENGER_FILE_RX || "^https://[\\w.-]+\\.(fbcdn\\.net|fbsbx\\.com|facebook\\.com)/");
 export const state = { enabled: !!TOKEN, page: process.env.MESSENGER_PAGE_NAME || null, error: TOKEN ? null : "MESSENGER_PAGE_TOKEN not set", lastEvent: null };
 
 async function graph(body) {
@@ -34,7 +36,7 @@ function parts(text, max = 1900) {
   if (cur) out.push(cur);
   return out;
 }
-async function send(id, text, { feedback, tag } = {}) {
+async function send(id, text, { feedback, tag, buttons } = {}) {
   const chunks = parts(text);
   for (let k = 0; k < chunks.length; k++) {
     const message = { text: chunks[k] };
@@ -42,6 +44,8 @@ async function send(id, text, { feedback, tag } = {}) {
       { content_type: "text", title: "👍 Helpful", payload: `fb:${feedback}:1` },
       { content_type: "text", title: "👎 Not helpful", payload: `fb:${feedback}:-1` },
     ];
+    // an agent's question with its answers as buttons (the Autopilot asking before it books)
+    if (k === chunks.length - 1 && buttons?.length) message.quick_replies = buttons.map((b) => ({ content_type: "text", title: b.title.slice(0, 20), payload: b.payload }));
     // a reply to the player is a RESPONSE; a reminder about a session the player put in their calendar goes out with
     // the event-update tag, which Messenger allows after the 24-hour window
     await graph({ recipient: { id }, messaging_type: tag ? "MESSAGE_TAG" : "RESPONSE", ...(tag ? { tag } : {}), message });
@@ -49,7 +53,11 @@ async function send(id, text, { feedback, tag } = {}) {
 }
 const typing = (id) => graph({ recipient: { id }, sender_action: "typing_on" });
 
-export const pocket = createPocket({ name: "Messenger", send, typing });
+// answers to an agent's buttons that the gateway handles itself (payload "ap:<run>:<choice>", the Autopilot), and the
+// Autopilot itself when a player asks for it here (the gateway fills these in)
+export const hooks = { payload: null, autopilot: null };
+export const pocket = createPocket({ name: "Messenger", send, typing, onAutopilot: (id) => (hooks.autopilot ? hooks.autopilot(id) : Promise.resolve()) });
+export const direct = send;
 export const REMINDER = { tag: "CONFIRMED_EVENT_UPDATE" };
 
 // GET: Meta checks the webhook once, when it is set up
@@ -72,6 +80,12 @@ export async function receive(body) {
     try {
       const fb = /^fb:(\d+):(-?1)$/.exec(ev.message?.quick_reply?.payload || "");
       if (fb) { pocket.feedback(id, +fb[1], +fb[2]); await send(id, +fb[2] > 0 ? "Thanks, noted for your coaches." : "Thanks, your coaches will review this."); continue; }
+      const qp = ev.message?.quick_reply?.payload || ev.postback?.payload || "";
+      if ((qp.startsWith("ap:") || qp.startsWith("wx:")) && hooks.payload) { await hooks.payload(id, qp); continue; }
+      if (qp.startsWith("bd:")) { await pocket.bodyAnswer(id, qp); continue; }
+      // a file shared to the chat (a health app's export, a GPX): only from Facebook's own file servers
+      const att = (ev.message?.attachments || []).find((a) => a.type === "file" && FILES.test(a.payload?.url || ""));
+      if (att && !ev.message.is_echo) { await pocket.file(id, att.payload.url, decodeURIComponent(new URL(att.payload.url).pathname.split("/").pop() || "export")); continue; }
       if (ev.postback?.payload === "GET_STARTED") { await pocket.handle(id, "there", "/start"); continue; }
       if (ev.message?.text && !ev.message.is_echo) await pocket.handle(id, "there", ev.message.text);
       state.error = null;

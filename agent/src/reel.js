@@ -12,7 +12,7 @@ const MAX = +(process.env.REEL_MAX_MB || 300) * 1e6;
 let busy = false; // one reel at a time: the GPU reads one video at a time
 export const ready = () => !!(process.env.REEL_PYTHON && process.env.REEL_SCRIPT && fs.existsSync(process.env.REEL_SCRIPT));
 
-export async function make(req, send) {
+export async function make(req, send, sport = "badminton") {
   if (busy) throw new Error("Another reel is being made on the server. Try again in a minute.");
   busy = true;
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "reel-")), src = path.join(dir, "in.mp4"), out = path.join(dir, "out.json");
@@ -28,9 +28,9 @@ export async function make(req, send) {
     send({ type: "working", step: "Finding you in every frame" });
     await new Promise((ok, bad) => {
       const env = { ...process.env, ...(process.env.REEL_GPU ? { CUDA_VISIBLE_DEVICES: process.env.REEL_GPU } : {}), ...(process.env.REEL_HF_CACHE ? { HF_HUB_CACHE: process.env.REEL_HF_CACHE } : {}) };
-      const p = spawn(process.env.REEL_PYTHON, [process.env.REEL_SCRIPT, src, out], { env });
+      const p = spawn(process.env.REEL_PYTHON, [process.env.REEL_SCRIPT, src, out, String(sport || "badminton").replace(/[^a-z ]/gi, "").slice(0, 20) || "badminton"], { env });
       let buf = "", err = "";
-      const next = { "Opened your video": "Finding you in every frame", "Found you": "Reading your pose and cutting you out", "Read your pose": "Finding your smash", "Found your smash": "Packing the reel" };
+      const next = { "Opened your video": "Finding you in every frame", "Found you": "Reading your pose and cutting you out", "Read your pose": "Finding your best moment" };
       p.stdout.on("data", (c) => {
         buf += c;
         for (let i; (i = buf.indexOf("\n")) >= 0;) {

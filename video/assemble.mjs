@@ -51,79 +51,79 @@ function piece(name, a, b, d, note) {
 
 // scene lengths: the narration plus a breath
 const LEN = NLEN.map((x, i) => +(LEAD + x + (i === NLEN.length - 1 ? 1.6 : 0.9)).toFixed(2));
-LEN[1] += 2.5; // the game going on, after the narration
-LEN[3] += 1.0; // the verified answer stays a moment
-LEN[8] += 2.5; // the two agents' agreement stays on screen
+LEN[1] += 1.5; // the booked game stays a moment
+LEN[2] += 1.0; // the report
+LEN[4] += 4.0; // the Messenger conversation carries itself
+LEN[6] += 2.0; // the two agents' agreement stays on screen
 const S = [];
-// 1 · title card: the pain point
-S.push([["title", 0.2, 0.2 + LEN[0], LEN[0]]]);
-// 2 · the challenge: typed, read (sped up), the map / calendars / middle, the writing (sped up), then the yes
+// 1 · impact: the number, the pain, what Serve does
+S.push([["impact", 0.2, 0.2 + LEN[0], LEN[0]]]);
+// 2 · the Autopilot: the click, Muse Glimmer's first tools (sped up), the agents negotiating (sped up), then the yes
 {
-  const p = (k) => m("play", k), L = LEN[1];
-  const c1 = say(1, 1), c2 = say(1, 2), c4 = say(1, 4), c5 = say(1, 5), c6 = say(1, 6);
+  const a = (k) => m("autopilot", k), c1 = say(1, 1), c3 = say(1, 3), c5 = say(1, 5), L = LEN[1];
   S.push([
-    ["play", 0.3, p("play") + 0.6, c1],
-    ["play", p("play") + 0.6, p("read") + 0.2, c2 - c1, "Muse Glimmer reading the request"],
-    ["play", p("read") + 0.2, p("middle") + 1.4, c4 - c2],
-    ["play", p("middle") + 1.4, p("options") + 0.8, c5 - c4 - 2.2, "Muse Glimmer writing the challenge"],
-    ["play", p("week"), p("week") + 2.6, 2.2],
-    // the yes: the options, the click, the confirmation with the invite Glimmer wrote
-    ["play", p("opts"), p("booked"), c6 - c5],
-    // then the court is held and the answer comes in (a demo member), and the game is on
-    ["play", p("booked"), p("answer"), (L - c6) * 0.42, "Waiting for Kenji (a demo member)"],
-    ["play", p("answer"), p("end"), (L - c6) * 0.58],
+    ["autopilot", 0.3, a("run") + 0.6, c1],
+    ["autopilot", a("run") + 0.6, a("partners") + 1.0, c3 - c1, "Muse Glimmer planning the week"],
+    ["autopilot", a("partners") + 1.0, a("ask"), c5 - c3, "The agents negotiating on Muse Glimmer"],
+    ["autopilot", a("ask"), a("end"), L - c5],
   ]);
 }
-// 3 · the agent home: two jobs at once, then a coach's answer with its checks
+// 3 · the body log: typed, filed on the body, the health export read, what changes, the trail and the report
 {
-  const c = say(2, 1);
-  S.push([["tasks", 0.3, m("tasks", "steps"), c], ["tasks_done", 0.3, m("tasks_done", "end"), LEN[2] - c]]);
-}
-// 4 · the coach agents: the inbox, Lin, Ren; then a question answered and checked
-{
-  const c1 = say(3, 1), c2 = say(3, 2), c3 = say(3, 3);
+  const b = (k) => m("body", k), c1 = say(2, 1), c3 = say(2, 3), c4 = say(2, 4), c5 = say(2, 5), L = LEN[2];
   S.push([
-    ["coaches", 0.2, m("coaches", "inbox"), c1],
-    // Lin's heat zones and their card (not the page loading, not the move to Ren's page)
-    ["coaches", m("coaches", "lin") + 1.6, m("coaches", "ren") - 3.8, c2 - c1],
-    // Ren once the 3D body has loaded
-    ["coaches", m("coaches", "ren") + 2.0, m("coaches", "end"), c3 - c2],
-    ["chat", 0.3, m("chat", "end"), LEN[3] - c3, "Muse Glimmer answering"],
+    ["body", 0.3, b("sent"), c1, "Typing"],
+    ["body", b("sent"), b("filed") + 0.5, 2.4, "Muse Glimmer reading it"],
+    ["body", b("filed") + 0.5, b("import"), c3 - c1 - 2.4],
+    ["body", b("import"), b("imported") + 0.6, c4 - c3, "Reading the export on your server"],
+    ["body", b("imported") + 0.6, b("trail"), c5 - c4],
+    ["body", b("trail"), b("write") + 0.5, (L - c5) * 0.45, "Drawing the map"],
+    ["body", b("write") + 0.5, b("end"), (L - c5) * 0.55, "Muse Glimmer writing the report"],
   ]);
 }
-// 5 · the round table plans the week
-S.push([["round", 0.3, m("round", "end"), LEN[4]]]);
-// 6 · the 24-hour coach in Messenger
-S.push([["pocket", 0.2, Math.min(m("pocket", "end"), 0.2 + LEN[5]), LEN[5]]]);
-// 7 · the highlight reel: asked, drawn (sped up), the smash replayed in slow motion at real speed, a cut to the finished
+// 4 · courts near you: the search and the judging (sped up), then a court and its reasons
+{
+  const c = (k) => m("courts", k), c2 = say(3, 2), L = LEN[3];
+  S.push([
+    ["courts", 0.3, c("find") + 0.5, c2],
+    ["courts", c("find") + 0.5, c("found") + 0.3, (L - c2) * 0.35, "Searching and judging on Muse Glimmer"],
+    ["courts", c("found") + 0.3, c("end"), (L - c2) * 0.65],
+  ]);
+}
+// 5 · the agent in Messenger
+S.push([["pocket", 0.2, Math.min(m("pocket", "end"), 0.2 + LEN[4]), LEN[4]]]);
+// 6 · the highlight reel: asked, drawn (sped up), the smash replayed in slow motion at real speed, a cut to the finished
 //     reel and its caption, then one tap to Instagram or Facebook
 {
-  const c1 = say(6, 1), c2 = say(6, 2), c3 = say(6, 3), c4 = say(6, 4), h = (k) => m("highlight", k);
+  const c1 = say(5, 1), c2 = say(5, 2), c3 = say(5, 3), c4 = say(5, 4), h = (k) => m("highlight", k);
   S.push([
     ["highlight", 0.3, h("cutting") + 0.8, c1],
     ["highlight", h("cutting") + 0.8, h("replay"), c2 - c1, "Drawing the reel"],
     ["highlight", h("replay"), h("replayed") + 0.6, c3 - c2],
     ["highlight", h("ready") - 0.4, h("caption"), 1.6], // a cut past the other four rallies to the finished reel
     ["highlight", h("caption"), h("share"), c4 - c3 - 1.6],
-    ["highlight", h("share"), h("end"), LEN[6] - c4],
+    ["highlight", h("share"), h("end"), LEN[5] - c4],
   ]);
 }
-// 8 · the coaches keep learning
+// 7 · the club: the leaderboard; your best match (sped up); the two agents agreeing (sped up), then the agreed thread
 {
-  const c1 = say(7, 1) + 2.0, c2 = say(7, 2) + 3.0;
-  S.push([["lab", 0.2, m("lab", "playbooks"), c1], ["lab", m("lab", "playbooks"), m("lab", "adopted"), c2 - c1], ["lab", m("lab", "adopted"), m("lab", "end"), LEN[7] - c2]]);
-}
-// 9 · the club: quests, the boss and the leaderboard; your best match (sped up); the two agents agreeing (sped up), then
-//     the agreed thread held
-{
-  const c1 = say(8, 1), c2 = say(8, 3), L = LEN[8], h = (k) => m("club", k);
+  const c1 = say(6, 1), c2 = say(6, 2), L = LEN[6], h = (k) => m("club", k);
   S.push([
-    ["club", 0.3, h("ranks"), c1 * 0.5],
-    ["club", h("ranks"), h("challenges"), c1 * 0.5],
+    ["club", h("ranks"), h("challenges"), c1],
     ["club", h("challenges"), h("talk"), c2 - c1, "Your agent scoring the club on Muse Glimmer"],
     ["club", h("talk"), h("agreed"), (L - c2) * 0.45, "The two agents agreeing a time on Muse Glimmer"],
     ["club", h("agreed"), h("end"), (L - c2) * 0.55],
   ]);
+}
+// 8 · Meta AI: what it is built on
+{
+  const c2 = say(7, 2);
+  S.push([["meta", 0.2, m("meta", "vision"), c2], ["meta", m("meta", "vision"), m("meta", "end"), LEN[7] - c2]]);
+}
+// 9 · technical: the architecture, the checks, the measured numbers
+{
+  const c1 = say(8, 1);
+  S.push([["tech", 0.2, m("tech", "nums"), c1], ["tech", m("tech", "nums"), m("tech", "end"), LEN[8] - c1]]);
 }
 // 10 · end card
 S.push([["end", 0.2, 0.2 + LEN[9], LEN[9]]]);

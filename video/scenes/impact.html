@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Impact</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1920px; height: 1080px; background: #fff; color: #0a0a0b; font-family: system-ui, "Segoe UI", sans-serif; overflow: hidden; position: relative; }
+  .wash { position: absolute; inset: 0; background: radial-gradient(ellipse at 78% 50%, rgba(10, 127, 68, .10), transparent 58%); opacity: 0; animation: fade 1.6s .2s forwards; }
+  .brand { position: absolute; left: 120px; top: 90px; display: flex; align-items: center; gap: 16px; font: 800 44px/1 system-ui, sans-serif; letter-spacing: -.035em; opacity: 0; animation: up .8s .2s forwards; }
+  .brand svg { width: 58px; height: 58px; fill: none; stroke: #0a0a0b; stroke-width: 5.5; stroke-linecap: round; }
+  .brand path { stroke-dasharray: 80; stroke-dashoffset: 80; animation: draw 1.2s .3s forwards; }
+  .brand circle { fill: #0a7f44; stroke: none; opacity: 0; animation: fade .3s 1.3s forwards; }
+  /* phase 1: the number */
+  .stat { position: absolute; left: 120px; top: 250px; width: 1500px; opacity: 0; animation: up .9s .5s forwards, away .6s 4.4s forwards; }
+  .stat b { display: block; font: 800 260px/.9 system-ui, sans-serif; letter-spacing: -.05em; color: #0a7f44; }
+  .stat span { display: block; font: 700 62px/1.15 system-ui, sans-serif; letter-spacing: -.03em; margin-top: 18px; max-width: 1300px; }
+  .stat small { display: block; font-size: 28px; color: #65656c; margin-top: 22px; }
+  /* phase 2: the pain, and what Serve does */
+  .copy { position: absolute; left: 120px; top: 230px; width: 860px; }
+  h1 { font: 800 80px/1.04 system-ui, sans-serif; letter-spacing: -.045em; opacity: 0; animation: up .9s 4.9s forwards; }
+  h1 span { color: #0a7f44; }
+  .pains { display: grid; gap: 18px; margin-top: 46px; }
+  .pain { display: flex; align-items: center; gap: 18px; font-size: 32px; font-weight: 650; opacity: 0; animation: up .7s forwards; }
+  .pain i { width: 40px; height: 40px; border-radius: 50%; background: rgba(209, 53, 43, .1); color: #d1352b; display: grid; place-items: center; font: 800 26px/1 system-ui; font-style: normal; flex: none; }
+  .pain:nth-child(1) { animation-delay: 6.2s; } .pain:nth-child(2) { animation-delay: 6.6s; } .pain:nth-child(3) { animation-delay: 7.0s; }
+  .fix { margin-top: 46px; font-size: 36px; line-height: 1.35; color: #3b3b40; opacity: 0; animation: up .9s 8.0s forwards; }
+  .fix b { color: #0a0a0b; }
+  .shot { position: absolute; left: 1010px; top: 170px; width: 860px; border-radius: 22px; overflow: hidden; border: 1px solid rgba(0, 0, 0, .12); box-shadow: 0 34px 100px rgba(0, 0, 0, .18); opacity: 0; transform: translateX(80px); animation: slide 1.4s 7.4s cubic-bezier(.2, .8, .2, 1) forwards; }
+  .shot img { display: block; width: 100%; }
+  .built { position: absolute; left: 120px; bottom: 64px; display: flex; align-items: center; gap: 14px; font-size: 24px; color: #65656c; opacity: 0; animation: fade 1s 8.6s forwards; }
+  .built img { height: 30px; }
+  .built b { color: #0a0a0b; font-weight: 700; }
+  @keyframes up { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+  @keyframes away { to { opacity: 0; transform: translateY(-24px); } }
+  @keyframes fade { to { opacity: 1; } }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  @keyframes slide { to { opacity: 1; transform: none; } }
+</style></head>
+<body>
+  <div class="wash"></div>
+  <div class="brand"><svg viewBox="0 0 64 64"><path d="M10 48 C 22 8, 42 8, 54 30" /><circle cx="54" cy="30" r="5" /></svg>serve</div>
+  <div class="stat"><b>31%</b><span>of adults don't get enough exercise.</span><small>World Health Organization, 2024</small></div>
+  <div class="copy">
+    <h1>We don't stop liking our sport.<br><span>We stop organizing it.</span></h1>
+    <div class="pains">
+      <div class="pain"><i>×</i>A time that suits four people</div>
+      <div class="pain"><i>×</i>A free court we can all reach</div>
+      <div class="pain"><i>×</i>Someone to push us to go</div>
+    </div>
+    <p class="fix"><b>Serve's agent does the organizing</b>, and keeps pushing. You just say yes.</p>
+  </div>
+  <div class="shot"><img src="../../submission/shots/autopilot_week.png" alt=""></div>
+  <div class="built"><img src="meta.svg" alt="Meta"><span>Built on <b>Muse Glimmer</b>, Meta's open-weights model · Meta Global AI Developer Hackathon 2026</span></div>
+</body></html>

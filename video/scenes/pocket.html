@@ -48,20 +48,20 @@
 <div class="phone"><div class="screen">
   <div class="bar"></div>
   <div class="head"><span class="back">‹</span><div class="ava"><svg viewBox="0 0 64 64"><path d="M10 48 C 22 8, 42 8, 54 30" /><circle cx="54" cy="30" r="5" /></svg></div>
-    <div><b>Serve coaches</b><span>Active now</span></div><img class="ms" src="messenger.svg" alt=""></div>
+    <div><b>Serve</b><span>Your agent · active now</span></div><img class="ms" src="messenger.svg" alt=""></div>
   <div class="log" id="log"></div>
   <div class="input">Aa</div>
 </div></div>
 <div class="note">Real replies on Muse Glimmer through the Messenger webhook, from its end-to-end test</div>
 <div class="side">
   <div class="tag"><img src="messenger.svg" alt="">Facebook Messenger</div>
-  <h1>A 24-hour coach<br>in your pocket</h1>
-  <div class="feat" id="f0"><i></i><div><b>Your week, planned for you</b><span>The round table's plan, sent to your phone</span></div></div>
-  <div class="feat" id="f1"><i></i><div><b>A nudge before every session</b><span>With a meal from what's in your kitchen</span></div></div>
-  <div class="feat" id="f2"><i></i><div><b>A check-in after</b><span>Logs what you did, and tomorrow adapts</span></div></div>
+  <h1>Your agent,<br>in Messenger</h1>
+  <div class="feat" id="f0"><i></i><div><b>Your week, one tap</b><span>Agreed with the other players' agents first</span></div></div>
+  <div class="feat" id="f1"><i></i><div><b>Tell it what hurts</b><span>Your games are planned around it</span></div></div>
+  <div class="feat" id="f2"><i></i><div><b>Share your health app</b><span>Workouts filed, and a check-in two days later</span></div></div>
 </div>
 <script>
-const S = [[300, "day", "Monday"], [600, "bot", "<b>Your coaches met at the round table and agreed this week.</b><br><br>Goals:<br>• Concede no more than 4 winners in the rear forehand<br>• Cut net errors to 8 or fewer<br>• Shots needing more than 3.5 m/s under 9%<br>• Train legs without jump landings until the knee settles<br><br><b>Mon</b>: Half-court defence into the rear forehand, 70% pace, low base…<br><b>Tue</b>: Tempo split squats, isometric calf holds, hip thrusts, wrist work…<br><b>Wed</b>: Mobility and easy bike…<br><span class=more>See the whole week</span>", 0], [3300, "me", "I have club training on Wednesday from 19:00 to 21:00"], [4200, "bot", "In your calendar: Wed 2026-10-28 19:00-21:00 club training. I&#x27;ll message you an hour before, with what to eat."], [5600, "me", "I bought chicken breast, rice and broccoli today"], [6400, "bot", "Added to your kitchen: chicken breast, rice, broccoli. Send /meal any time and Coach Mei plans around it."], [7800, "day", "Wednesday 18:00"], [8100, "bot", "Coming up: Wed 2026-10-28 19:00-21:00 club training.", 1], [9000, "bot", "<b>Coach Mei</b> Eat a full meal built from chicken breast, rice and broccoli before your 19:00 training, with a small carbohydrate snack in the last hour, and consider a 6.4% carbohydrate solution before/during to support short-serve accuracy under fatigue.", null, ["👍 Helpful", "👎 Not helpful"]], [11200, "day", "Wednesday 21:00"], [11500, "bot", "How did today&#x27;s session go? Tell me what you did, roughly how long, and any pain or soreness.", 2], [12800, "me", "Did 45 minutes of footwork and net drills, knee felt fine"], [13600, "bot", "Logged for 2026-10-27: footwork and net drills, 45 min."], [14600, "bot", "<b>Coach Kai</b> Nice, knee felt fine after 45 min footwork and net drills. Next do 5 min static net preparation, focusing margin over tape before speed, with hip abduction and rotation on forehand lunges."]];
+const S = [[300, "me", "Line up my games this week"], [1000, "bot", "On it. I&#x27;m checking your week, finding the people you play best with at your usual times, and agreeing the games with their agents.", 0], [2600, "bot", "Lined up 2 games: Doubles Saturday 09:00 at Riverside Sports Centre with Leo, Hana, Tomás; Doubles Thursday 19:00 at Riverside Sports Centre with Leo, Hana, Tomás. They wait for your yes.<br>• Doubles Saturday 09:00 at Riverside Sports Centre with Leo, Hana, Tomás<br>• Doubles Thursday 19:00 at Riverside Sports Centre with Leo, Hana, Tomás<br>Everyone&#x27;s agent already said yes. Book them?", null, ["Book both", "Only the first", "Not this week"]], [4300, "me", "Book both"], [5000, "bot", "Booked:<br>• Doubles Saturday 09:00 at Riverside Sports Centre with Leo, Hana, Tomás, court 4<br>• Doubles Thursday 19:00 at Riverside Sports Centre with Leo, Hana, Tomás, court 4"], [6300, "me", "My right knee is sore after jumping, about 3 out of 5"], [7100, "bot", "Logged: right knee, sore 3/5 (after jumping).<br>While your right knee settles: doubles first and no jump sports in the games I line up.", 1], [8500, "me", "📎 serve_sample_health_export.zip"], [9300, "bot", "Read your Apple Health file: 23 workouts (10 with a GPS route) and 57 days of steps, heart rate and sleep.", 2], [10800, "day", "Two days later"], [11100, "bot", "How is your right knee today?", null, ["Fine now", "About the same", "Worse"]], [12400, "me", "About the same"], [13000, "bot", "Logged: right knee, sore 3/5."]];
 const log = document.getElementById("log");
 const fit = () => { const used = () => [...log.children].reduce((s, c) => s + c.offsetHeight + 6, 0); while (used() > log.clientHeight - 16 && log.children.length > 1) log.removeChild(log.firstChild); };
 const add = (el) => { log.appendChild(el); fit(); requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("on"))); };
@@ -77,6 +77,6 @@ for (const [t, kind, text, f, btns] of S) {
     if (f != null) document.querySelectorAll(".feat").forEach((x, i) => { x.classList.toggle("on", i === f); if (i <= f) x.classList.add("seen"); });
   }, t);
 }
-setTimeout(() => document.querySelectorAll(".feat").forEach((x) => x.classList.add("on", "seen")), 16600);
+setTimeout(() => document.querySelectorAll(".feat").forEach((x) => x.classList.add("on", "seen")), 13800);
 </script>
 </body></html>

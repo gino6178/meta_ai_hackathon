@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { agentPlay, agentQuests, agentClubPlan, agentChat, agentBook, agentBooking, agentCancel, agentBest, agentTalk } from "./agent.js";
+import { agentPlay, agentQuests, agentClubPlan, agentChat, agentBook, agentBooking, agentCancel, agentBest, agentTalk, agentAutopilot, agentAutopilotAnswer } from "./agent.js";
 import { coachById } from "./coaches/personas.js";
 import { tactics } from "./coaches/analysis.js";
 import { memory } from "./memory.js";
-import { patchGame, isoWeek } from "./club/game.js";
+import { readGame, patchGame, isoWeek } from "./club/game.js";
 import { postToClub } from "./club/share.js";
 import { prefersReducedMotion } from "./hooks.js";
 
@@ -49,6 +49,9 @@ export function playerOf(data) {
 // a coach question
 export function intentOf(text) {
   if (/highlight|reel|instagram|facebook post|post (it|my|on)|精華|剪片/i.test(text)) return "highlight";
+  if (/autopilot|plan my week|keep me playing|line up (my )?(games|week)|自動安排|幫我安排/i.test(text)) return "autopilot";
+  if (/\b(courts?|fields?|parks?|pitch(es)?)\b.{0,30}\b(near|nearby|around)\b|where can (we|i) play/i.test(text)) return "courts";
+  if (/\b(knee|ankle|calf|calves|shin|achilles|foot|hamstring|thigh|hip|groin|glute|back|neck|shoulder|elbow|wrist|chest|ribs?)\b.{0,40}\b(hurts?|pain|sore|aches?|tight|stiff|twisted|pulled|fine|better)\b|\b(hurts?|sore|pain in)\b.{0,20}\b(knee|ankle|calf|back|shoulder|elbow|wrist)\b/i.test(text)) return "body";
   if (/best (match|opponent|partner|pairing)|who should i (play|challenge)|right opponent|suits me|最適|最佳|最合適/i.test(text)) return "best";
   if (/random (match|game|opponent|partner)|match me|draw (me )?a (match|game)|隨機|配對/i.test(text)) return "random";
   if (/leaderboard|ranking|my rank|rating|排行|排名/i.test(text)) return "ranks";
@@ -156,6 +159,37 @@ function credit(b) {
   if (!fresh) return;
   const names = b.invites.filter((i) => i.status === "in").map((i) => first(i.name));
   postToClub({ kind: "game", coach: "tactics", text: `Booked ${b.option.format} on ${b.option.day} ${b.option.start} at ${b.option.venue.name} with ${names.join(", ")}.`, reply: "Good game plan: use it to test this week's quest." });
+}
+
+// ---- the Autopilot: your agent runs the week, then asks once ---------------------------------------------------
+// what the app knows that the gateway does not: your games already booked, and results you reported with how long
+// you played (a game that runs past its booking teaches the Autopilot who you click with)
+export function autopilotInput() {
+  const g = readGame(), wk = new Date(), soon = new Date(wk.getTime() + 7 * 864e5);
+  const upcoming = list.filter((t) => t.kind === "play" && t.booking?.state === "confirmed").map((t) => t.booking.option)
+    .filter((o) => { const d = new Date(`${o.date}T${o.start}`); return d >= new Date(wk.toDateString()) && d < soon; }).map((o) => ({ date: o.date, start: o.start, with: o.partners.map((p) => p.id) }));
+  const history = (g.arena?.results || []).filter((x) => x.played).map((x) => ({ date: new Date(x.at).toISOString().slice(0, 10), start: x.start || "19:00", sport: x.sport || "badminton", format: x.vs.length > 1 ? "doubles" : "singles", with: [...x.vs, ...(x.partner ? [x.partner] : [])], booked: x.booked || 90, played: x.played }));
+  return { upcoming, history, goal: g.autopilot?.goal || {} };
+}
+export function startAutopilot(body) {
+  const id = create("autopilot", () => ({ title: `Line up ${body.goal?.perWeek || 2} games this week`, href: "autopilot" }));
+  run(id, (on) => agentAutopilot(body, on), (r) => ({ result: r, state: r.agreed.length ? "needs" : "done",
+    summary: r.agreed.length ? `${r.agreed.length} game${r.agreed.length > 1 ? "s" : ""} agreed with everyone's agent. Book ${r.agreed.length > 1 ? "them" : "it"}?` : r.summary }));
+  return id;
+}
+// your answer: the gateway books what you approved (the other agents already said yes), and the app follows each game
+export async function approveAutopilot(t, choice) {
+  const r = await agentAutopilotAnswer(t.result.id, choice);
+  if (r.error) { update(t.id, { state: "done", summary: r.error }); return r; }
+  update(t.id, { state: "done", summary: r.options.length ? `Booked ${r.options.length} game${r.options.length > 1 ? "s" : ""}` : "Nothing booked this week", answered: choice });
+  r.bookings.forEach((b, k) => {
+    const o = r.options[k];
+    const pid = create("play", () => ({ title: `${o.format === "doubles" ? "Doubles" : "Singles"} ${o.day} ${o.start} with ${o.partners.map((p) => first(p.name)).join(", ")}, lined up by Autopilot`, href: "club?tab=challenges",
+      result: { options: [o], invites: {}, message: "Agreed by your agents." } }));
+    update(pid, { booking: b, chosen: o.id, state: "running", working: "Waiting for answers", summary: bookingLine(b) });
+    follow(pid);
+  });
+  return r;
 }
 
 // ---- the best match, and your agent talking to theirs ----------------------------------------------------------

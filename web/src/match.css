@@ -373,3 +373,5 @@
 .own-steps .dots i:nth-child(2) { animation-delay: .15s; } .own-steps .dots i:nth-child(3) { animation-delay: .3s; }
 @keyframes blink { 50% { opacity: .25; } }
 @media (prefers-reduced-motion: reduce) { .own-steps .dots i { animation: none; } }
+.own-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2) var(--s3); }
+.own-row label.tiny { display: inline-flex; align-items: center; gap: 6px; }
